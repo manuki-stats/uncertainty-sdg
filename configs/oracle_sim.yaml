@@ -1,0 +1,11 @@
+# The first experiment we will run: the oracle gate on the simulation.
+# The parametric oracle under full synthesis must yield ~95% coverage on E1-E3.
+method:   oracle          # parametric oracle, not a method under test
+dataset:  simulation      # known ground truth
+step:     2               # multiple synthesis (m-from-one-fit) + combining rules
+m:        20              # synthetic datasets per replication
+K:        1               # not an ensemble here
+R:        500             # Monte-Carlo replications (high: this cell is cheap)
+estimands: [E1, E2, E3]
+extra:
+  alpha: 0.05             # 95% intervals

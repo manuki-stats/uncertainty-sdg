@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+*.egg-info/
+
+# Results: keep the directory and configs, ignore bulky raw outputs
+results/*
+!results/.gitkeep
+!results/README.md
+
+# Large artifacts / models
+*.pkl
+*.pt
+*.ckpt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / local env
+.env
