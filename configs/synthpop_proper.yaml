@@ -1,0 +1,13 @@
+# The positive control: synthpop-CART with proper synthesis. Pilot at R = 100.
+name: synthpop_proper
+generator: synthpop
+generator_kwargs: {proper: true}
+dataset: simulation
+target: population
+n_org: 2000
+r: 2
+m: 10
+K: 10
+steps: [1, 2]
+estimators: [T_alt, T_s, T_s_ppd]
+alpha: 0.05

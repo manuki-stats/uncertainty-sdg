@@ -1,0 +1,13 @@
+# synthpop-CART without the bootstrap: plug-in synthesis. Expect kappa ~ 1.
+name: synthpop_plugin
+generator: synthpop
+generator_kwargs: {proper: false}
+dataset: simulation
+target: population
+n_org: 2000
+r: 2
+m: 10
+K: 10
+steps: [1, 2]
+estimators: [T_alt, T_s, T_s_ppd]
+alpha: 0.05

@@ -34,10 +34,22 @@ from src.seeds import derive_seed
 ESTIMAND_NAMES = ("E1", "E2", "E3")
 
 
+def make_generator_by_name(name: str, kwargs: dict):
+    """Registry. Deep-generator modules are imported lazily so the oracle runs
+    without torch or R installed."""
+    if name == "oracle":
+        return ParametricOracle(**kwargs)
+    if name in ("ctgan", "tvae"):
+        from src.generators.ctgan_generators import CTGANGenerator, TVAEGenerator
+        return (CTGANGenerator if name == "ctgan" else TVAEGenerator)(**kwargs)
+    if name == "synthpop":
+        from src.generators.synthpop_generator import SynthpopGenerator
+        return SynthpopGenerator(**kwargs)
+    raise ValueError(f"unknown generator {name!r}")
+
+
 def make_generator(cfg: ExperimentConfig):
-    if cfg.generator == "oracle":
-        return ParametricOracle(**cfg.generator_kwargs)
-    raise ValueError(f"unknown generator {cfg.generator!r}")
+    return make_generator_by_name(cfg.generator, cfg.generator_kwargs)
 
 
 def make_dataset(cfg: ExperimentConfig):
