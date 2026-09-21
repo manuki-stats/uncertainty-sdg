@@ -9,3 +9,6 @@ R:        500             # Monte-Carlo replications (high: this cell is cheap)
 estimands: [E1, E2, E3]
 extra:
   alpha: 0.05             # 95% intervals
+  n_org: 1000             # rows in each simulated "real" sample
+  n_syn: 5000             # rows per synthetic dataset; 5x n_org keeps nu_f usable
+  seed0: 0                # replication r uses seed0 + r

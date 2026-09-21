@@ -9,16 +9,44 @@ coverage fails --- the misleading foil, not a measure of inferential validity.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 
-def coverage(intervals, truth) -> float:
-    raise NotImplementedError
+import numpy as np
+
+
+def coverage(intervals, truth: float) -> float:
+    """Fraction of PooledInference objects whose interval contains the truth.
+
+    Failed replications (NaN bounds) are dropped, not counted as misses, so a
+    generator that occasionally collapses is not silently punished twice; the
+    harness logs the failure count separately.
+    """
+    hits = [r.covers(truth) for r in intervals if np.isfinite(r.ci_low) and np.isfinite(r.ci_high)]
+    return float(np.mean(hits)) if hits else float("nan")
+
 
 def mean_width(intervals) -> float:
-    raise NotImplementedError
+    w = [r.width for r in intervals if np.isfinite(r.width)]
+    return float(np.mean(w)) if w else float("nan")
 
-def bias(estimates, truth) -> float:
-    raise NotImplementedError
 
-def rmse_foil(estimates, truth) -> float:
+def bias(estimates: Sequence[float], truth: float) -> float:
+    q = np.asarray(estimates, dtype=float)
+    q = q[np.isfinite(q)]
+    return float(q.mean() - truth) if q.size else float("nan")
+
+
+def rmse_foil(estimates: Sequence[float], truth: float) -> float:
     """Reported as the foil, never as evidence of valid inference."""
-    raise NotImplementedError
+    q = np.asarray(estimates, dtype=float)
+    q = q[np.isfinite(q)]
+    return float(np.sqrt(np.mean((q - truth) ** 2))) if q.size else float("nan")
+
+
+def mc_standard_error(rate: float, n_reps: int) -> float:
+    """Monte-Carlo standard error of an estimated coverage rate.
+
+    At R = 500 and a true rate of 0.95 this is 0.010, so a gate band of
+    [0.93, 0.97] is roughly two standard errors wide.
+    """
+    return float(np.sqrt(rate * (1.0 - rate) / n_reps))

@@ -1,0 +1,92 @@
+[KeOps] Warning : No C++ compiler found. Define CXX environment variable or install g++.
+[KeOps] Warning : No C++ compiler found. You need to either define the CXX environment variable pointing to a valid compiler, or ensure that 'g++' is installed and in your PATH.
+[KeOps] Warning : CUDA libraries not found or could not be loaded; Switching to CPU only.
+[KeOps] Warning : No C++ compiler found. You need to either define the CXX environment variable pointing to a valid compiler, or ensure that 'g++' is installed and in your PATH.
+[KeOps] Warning : No C++ compiler available to check for OpenMP support.
+[KeOps] Warning : OpenMP support is not available. Disabling OpenMP.
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
+    def generate(self, count: int, cond: Optional[np.ndarray] = None) -> np.ndarray:
+        self.decoder.eval()
+
+        steps = count // self.batch_size + 1
+        data = []
+
+        condt: Optional[torch.Tensor] = None
+        if cond is None and self.n_units_conditional > 0:
+            # sample from the original conditional
+            if self._original_cond is None:
+                raise ValueError("Invalid original conditional. Provide a valid value.")
+            cond_idxs = torch.randint(len(self._original_cond), (count,))
+            cond = self._original_cond[cond_idxs]
+
+        if cond is not None and len(cond.shape) == 1:
+            cond = cond.reshape(-1, 1)
+
+        if cond is not None and len(cond) != count:
+            raise ValueError("cond length must match count")
+
+        if cond is not None:
+            condt = self._check_tensor(cond)
+
+        for idx in range(steps):
+            mean = torch.zeros(self.batch_size, self.n_units_embedding)
+            std = torch.ones(self.batch_size, self.n_units_embedding)
+            noise = torch.normal(mean=mean, std=std).to(self.device)
+
+            condt_mb: Optional[torch.Tensor] = None
+            if condt is not None:
+                condt_mb = condt[
+                    idx * self.batch_size : min((idx + 1) * self.batch_size, count)
+                ]
+                noise = noise[: len(condt_mb)]
+
+            fake = self.decoder(noise, condt_mb)
+            data.append(fake.detach().cpu().numpy())
+
+        data = np.concatenate(data, axis=0)
+        data = data[:count]
+        return data
+
+    def _loss_function_standard(
+        self,
+        reconstructed: Tensor,
+        real: Tensor,
+        mu: Tensor,
+        logvar: Tensor,
+    ) -> Tensor:
+        step = 0
+
+        loss = []
+        for activation, length in self.decoder_nonlin_out:
+            step_end = step + length
+            # reconstructed is after the activation
+            if activation == "softmax":
+                discr_loss = nn.NLLLoss(reduction="sum")(
+                    torch.log(reconstructed[:, step:step_end] + 1e-8),
+                    torch.argmax(real[:, step:step_end], dim=-1),
+                )
+                loss.append(discr_loss)
+            else:
+                diff = reconstructed[:, step:step_end] - real[:, step:step_end]
+                cont_loss = (50 * diff**2).sum()
+
+                loss.append(cont_loss)
+            step = step_end
+
+        if step != reconstructed.size()[1]:
+            raise RuntimeError(
+                f"Invalid reconstructed features. Expected {step}, got {reconstructed.shape}"
+            )
+
+        reconstruction_loss = torch.sum(torch.stack(loss)) / real.shape[0]
+        KLD_loss = (-0.5 * torch.sum(1 + logvar - mu**2 - logvar.exp())) / real.shape[
+            0
+        ]
+
+        if torch.isnan(reconstruction_loss):
+            raise RuntimeError("NaNs detected in the reconstruction_loss")
+        if torch.isnan(KLD_loss):
+            raise RuntimeError("NaNs detected in the KLD_loss")
+
+        return reconstruction_loss * self.loss_factor + KLD_loss
+
