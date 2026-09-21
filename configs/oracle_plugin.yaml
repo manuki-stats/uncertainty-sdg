@@ -1,0 +1,13 @@
+# Oracle gate, plugin synthesis. Values provisional until Ch. 4 fixes n_org, r, m, K.
+name: oracle_plugin
+generator: oracle
+generator_kwargs: {mode: plugin}
+dataset: simulation
+target: population
+n_org: 2000
+r: 2
+m: 10
+K: 10
+steps: [1, 2, 3, 4]
+estimators: [T_alt, T_s, T_s_ppd, T_f]
+alpha: 0.05

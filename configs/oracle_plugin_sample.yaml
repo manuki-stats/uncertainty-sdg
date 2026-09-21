@@ -1,0 +1,13 @@
+# Real-data coverage convention, tested on the simulation: target = q_org.
+name: oracle_plugin_sample
+generator: oracle
+generator_kwargs: {mode: plugin}
+dataset: simulation
+target: sample
+n_org: 2000
+r: 2
+m: 10
+K: 10
+steps: [1, 2, 3, 4]
+estimators: [T_alt, T_s, T_s_ppd]
+alpha: 0.05

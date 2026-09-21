@@ -1,52 +1,40 @@
-"""The metrics: coverage, CI width, bias --- plus RMSE as the deliberate foil.
+"""Cell-level metrics computed from replication-level results.
 
-Across R replications:
-    coverage = fraction of intervals containing the truth  (target 0.95)
-    width    = mean interval length
-    bias     = mean(pooled estimate) - truth
-RMSE is computed too, and reported precisely to show it can look fine while
-coverage fails --- the misleading foil, not a measure of inferential validity.
+Coverage, width, bias and the variance ratio are computed directly in
+summarise.py from the raw chunks; this module holds the pieces that need care.
 """
 from __future__ import annotations
 
 from collections.abc import Sequence
 
 import numpy as np
+from scipy import stats
 
 
-def coverage(intervals, truth: float) -> float:
-    """Fraction of PooledInference objects whose interval contains the truth.
-
-    Failed replications (NaN bounds) are dropped, not counted as misses, so a
-    generator that occasionally collapses is not silently punished twice; the
-    harness logs the failure count separately.
-    """
-    hits = [r.covers(truth) for r in intervals if np.isfinite(r.ci_low) and np.isfinite(r.ci_high)]
-    return float(np.mean(hits)) if hits else float("nan")
-
-
-def mean_width(intervals) -> float:
-    w = [r.width for r in intervals if np.isfinite(r.width)]
-    return float(np.mean(w)) if w else float("nan")
+def wilson_interval(hits: int, n: int, level: float = 0.95) -> tuple[float, float]:
+    """Wilson score interval for a binomial proportion (coverage out of R)."""
+    if n == 0:
+        return float("nan"), float("nan")
+    z = stats.norm.ppf(0.5 + level / 2)
+    p = hits / n
+    denom = 1 + z**2 / n
+    centre = (p + z**2 / (2 * n)) / denom
+    half = z * np.sqrt(p * (1 - p) / n + z**2 / (4 * n**2)) / denom
+    return float(centre - half), float(centre + half)
 
 
-def bias(estimates: Sequence[float], truth: float) -> float:
-    q = np.asarray(estimates, dtype=float)
-    q = q[np.isfinite(q)]
-    return float(q.mean() - truth) if q.size else float("nan")
-
-
-def rmse_foil(estimates: Sequence[float], truth: float) -> float:
-    """Reported as the foil, never as evidence of valid inference."""
-    q = np.asarray(estimates, dtype=float)
-    q = q[np.isfinite(q)]
-    return float(np.sqrt(np.mean((q - truth) ** 2))) if q.size else float("nan")
+def needs_escalation(hits: int, n: int, threshold: float = 0.93, r_max: int = 1000) -> bool:
+    """Two-pass rule: rerun at r_max if near-nominal coverage cannot be ruled out."""
+    return n < r_max and wilson_interval(hits, n)[1] >= threshold
 
 
 def mc_standard_error(rate: float, n_reps: int) -> float:
-    """Monte-Carlo standard error of an estimated coverage rate.
-
-    At R = 500 and a true rate of 0.95 this is 0.010, so a gate band of
-    [0.93, 0.97] is roughly two standard errors wide.
-    """
+    """Monte Carlo standard error of an estimated coverage rate."""
     return float(np.sqrt(rate * (1.0 - rate) / n_reps))
+
+
+def rmse_foil(estimates: Sequence[float], truth) -> float:
+    """Reported as the foil, never as evidence of valid inference."""
+    err = np.asarray(estimates, dtype=float) - np.asarray(truth, dtype=float)
+    err = err[np.isfinite(err)]
+    return float(np.sqrt(np.mean(err**2))) if err.size else float("nan")

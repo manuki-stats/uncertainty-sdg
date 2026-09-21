@@ -21,3 +21,6 @@ Thumbs.db
 
 # Secrets / local env
 .env
+
+results/raw/
+results/summary/
