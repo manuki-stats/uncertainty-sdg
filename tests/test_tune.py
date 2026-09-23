@@ -94,3 +94,15 @@ def test_missing_package_stops_the_run(tmp_path):
                      n_files=1, n_top=1, n_seeds=1, space={"shrink": {"choice": [1.0]}})
     with pytest.raises(ModuleNotFoundError):
         run_tuning(cfg, factory=fac, root=tmp_path)
+
+
+def test_one_se_rule_takes_the_cheapest_indistinguishable_finalist():
+    from src.harness.tune import select_winner
+    rows = [dict(trial=0, stage2_mean=80.0, stage2_se=5.0, fit_s=30.0),
+            dict(trial=13, stage2_mean=76.0, stage2_se=6.0, fit_s=1250.0),   # best, costly
+            dict(trial=5, stage2_mean=90.0, stage2_se=2.0, fit_s=10.0)]      # cheap but > 1 SE
+    sel, best = select_winner(rows)
+    assert best["trial"] == 13 and sel["trial"] == 0
+    rows[0]["stage2_mean"] = 83.0                                            # now outside 1 SE
+    sel, best = select_winner(rows)
+    assert sel["trial"] == 13

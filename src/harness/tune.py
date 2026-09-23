@@ -6,9 +6,18 @@ Protocol (identical for every tuned generator):
            search space; one training fit each, scored as the mean pMSE ratio
            over `n_files` generated files at r = 1.
   Stage 2  the default plus the `n_top` best non-default configurations,
-           each refitted with `n_seeds` fresh training seeds. The lowest
-           stage-2 mean wins; stage-1 scores are discarded, because the
-           minimum of many noisy scores is biased towards lucky seeds.
+           each refitted with `n_seeds` fresh training seeds. Stage-1 scores
+           are discarded, because the minimum of many noisy scores is biased
+           towards lucky seeds.
+  Select   the one-standard-error rule (Breiman et al. 1984; Hastie,
+           Tibshirani & Friedman 2009, sec. 7.10): among the finalists whose
+           stage-2 mean lies within one standard error of the best mean, take
+           the cheapest to fit (median stage-2 fit time). With three seeds per
+           configuration the means are often indistinguishable, and paying
+           several times the compute of Steps 3-4 for an indistinguishable
+           score is poor value. The best-by-mean configuration is reported
+           alongside. The rule was fixed on 23 Sept 2026, after the TVAE run
+           (whose outcome it does not change) and before CTGAN's stage 2.
 
 With n_random = 29, n_top = 3, n_seeds = 3 that is 42 fits per generator. By
 Bergstra & Bengio's (2012) argument, 29 independent draws put at least one in
@@ -267,27 +276,42 @@ def _stats(recs: list[dict]) -> tuple[float, float]:
     return float(scores.mean()), float(se)
 
 
+def select_winner(table: list[dict]) -> tuple[dict, dict]:
+    """One-standard-error rule. `table` rows need stage2_mean, stage2_se,
+    fit_s and trial. Returns (selected, best_by_mean)."""
+    rows = sorted(table, key=lambda r: (r["stage2_mean"], r["trial"]))
+    best = rows[0]
+    se = best["stage2_se"] if np.isfinite(best["stage2_se"]) else 0.0
+    eligible = [r for r in rows if r["stage2_mean"] <= best["stage2_mean"] + se]
+    selected = min(eligible, key=lambda r: (r["fit_s"], r["stage2_mean"], r["trial"]))
+    return selected, best
+
+
 def _summarise(cfg, out, configs, s1, s2, ref) -> dict:
     table = []
     for t, recs in s2.items():
         mean, se = _stats(recs)
         table.append({"trial": t, "default": t == 0, "stage1": s1[t]["score"],
                       "stage2_mean": mean, "stage2_se": se,
-                      "fit_s": float(np.mean([r.get("fit_s", np.nan) for r in recs])),
+                      "fit_s": float(np.median([r.get("fit_s", np.nan) for r in recs])),
                       "params": configs[t]})
     table.sort(key=lambda r: (r["stage2_mean"], r["trial"]))
-    win = table[0]
-    if not np.isfinite(win["stage2_mean"]):
+    if not np.isfinite(table[0]["stage2_mean"]):
         raise RuntimeError(
             f"no stage-2 finalist of {cfg.name} produced a valid score; no winner "
             f"written. See the fit_*.json files in {out}")
+    win, best = select_winner(table)
     dflt = next(r for r in table if r["default"])
     ref_mean, ref_se = _stats(ref)
     margin = dflt["stage2_mean"] - win["stage2_mean"]
     margin_se = float(np.hypot(win["stage2_se"], dflt["stage2_se"]))
     summary = {
         "name": cfg.name, "hash": cfg.hash(), "generator": cfg.generator,
+        "selection_rule": "one-standard-error, cheapest within 1 SE of the best mean",
+        "best_by_mean_trial": best["trial"], "best_by_mean_score": best["stage2_mean"],
+        "best_by_mean_se": best["stage2_se"], "best_by_mean_fit_s": best["fit_s"],
         "winner_trial": win["trial"], "winner_is_default": win["default"],
+        "winner_fit_s": win["fit_s"],
         "winner_params": win["params"],
         "winner_score": win["stage2_mean"], "winner_se": win["stage2_se"],
         "default_score": dflt["stage2_mean"], "default_se": dflt["stage2_se"],
@@ -316,12 +340,17 @@ def _print_summary(s: dict, out: Path) -> None:
               f"(stage 1: {r['stage1']:.2f}, fit {r['fit_s']:.0f}s)  {r['params']}")
     print(f"  reference: plug-in oracle {s['reference_plugin_oracle']:.2f} "
           f"± {s['reference_se']:.2f}")
+    bt = "default" if s["best_by_mean_trial"] == 0 else f"t{s['best_by_mean_trial']:02d}"
+    wt = "default" if s["winner_is_default"] else f"t{s['winner_trial']:02d}"
+    print(f"\nBest by mean: {bt} ({s['best_by_mean_score']:.2f} ± {s['best_by_mean_se']:.2f}, "
+          f"fit {s['best_by_mean_fit_s']:.0f}s).  Selected by the 1-SE rule: {wt} "
+          f"(fit {s['winner_fit_s']:.0f}s).")
     if s["winner_is_default"]:
-        print("\nWinner: the DEFAULT configuration. Tuning found nothing better.")
+        print("Winner: the DEFAULT configuration.")
     else:
         verdict = ("beyond seed noise" if s["margin_beyond_2se"]
                    else "NOT beyond seed noise (< 2 SE)")
-        print(f"\nWinner: t{s['winner_trial']:02d}, {s['margin_over_default']:.2f} "
+        print(f"Winner: t{s['winner_trial']:02d}, {s['margin_over_default']:.2f} "
               f"± {s['margin_se']:.2f} below the default, {verdict}.")
         if s["edges"]:
             print("  On a search-space edge: " + "; ".join(s["edges"]))
