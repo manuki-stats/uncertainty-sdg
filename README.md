@@ -59,6 +59,20 @@ env via an activation script:
 `%CONDA_PREFIX%\etc\conda\activate.d\rpy2_env.bat`, so `conda activate synth`
 sets it automatically. R must have `synthpop` installed (`install.packages("synthpop")`).
 
+## Tuning
+
+Deep generators are tuned once, before any experiment, by an equal-budget
+two-stage random search (`src/harness/tune.py`, protocol in its docstring):
+42 fits per generator, scored by the pMSE ratio (`src/evaluation/pmse.py`),
+never by coverage. Tuning uses its own sample (own `seed0`) at n = n_org.
+
+    python -m src.harness.tune --config configs/tune_tvae.yaml --smoke   # minutes
+    python -m src.harness.tune --config configs/tune_tvae.yaml           # the real run
+
+Output goes to `results/tuning/<name>__<hash>/`: one JSON per fit (resumable),
+`summary.json`, and `winner.yaml` with the settings to copy into the
+experiment configs' `generator_kwargs`.
+
 ## Build order (the important part)
 
 1. **Harness + oracle first --- not the generators.** Implement the evaluation

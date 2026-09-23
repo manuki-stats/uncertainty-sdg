@@ -17,7 +17,10 @@ from __future__ import annotations
 
 import numpy as np
 
-PURPOSES = {"data": 0, "train": 1, "gen": 2, "boot": 3}
+# Tuning purposes are appended, never inserted: a seed depends on the integer
+# code, so reordering would silently change every existing seed.
+PURPOSES = {"data": 0, "train": 1, "gen": 2, "boot": 3,
+            "tune_data": 4, "tune_config": 5}
 
 
 def derive_seed(seed0: int, rep: int, step: int, purpose: str, idx: int = 0) -> int:

@@ -1,0 +1,18 @@
+# Tuning protocol for TVAE: same budget and structure as CTGAN.
+name: tune_tvae
+generator: tvae
+generator_kwargs: {enable_gpu: false}
+n_tune: 5000
+n_random: 29
+n_files: 3
+n_top: 3
+n_seeds: 3
+seed0: 20260923
+space:
+  epochs: {choice: [300, 600, 900]}
+  batch_size: {choice: [250, 500, 1000]}
+  embedding_dim: {choice: [32, 64, 128, 256]}
+  compress_dims: {layers: {width: [128, 256], depth: [2, 3]}}
+  decompress_dims: {layers: {width: [128, 256], depth: [2, 3]}}
+  l2scale: {loguniform: [1.0e-6, 1.0e-3]}
+  loss_factor: {loguniform: [0.5, 8.0]}
