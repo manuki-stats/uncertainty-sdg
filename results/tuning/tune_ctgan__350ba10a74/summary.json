@@ -1,0 +1,140 @@
+{
+ "name": "tune_ctgan",
+ "hash": "350ba10a74",
+ "generator": "ctgan",
+ "selection_rule": "one-standard-error, cheapest within 1 SE of the best mean",
+ "best_by_mean_trial": 5,
+ "best_by_mean_score": 193.5311417268841,
+ "best_by_mean_se": 15.5470327493682,
+ "best_by_mean_fit_s": 613.4067804000006,
+ "winner_trial": 5,
+ "winner_is_default": false,
+ "winner_fit_s": 613.4067804000006,
+ "winner_params": {
+  "batch_size": 250,
+  "discriminator_dim": [
+   256,
+   256,
+   256
+  ],
+  "discriminator_lr": 0.000212,
+  "discriminator_steps": 5,
+  "embedding_dim": 128,
+  "epochs": 300,
+  "generator_dim": [
+   128,
+   128,
+   128
+  ],
+  "generator_lr": 0.000329,
+  "pac": 1
+ },
+ "winner_score": 193.5311417268841,
+ "winner_se": 15.5470327493682,
+ "default_score": 653.7387640860917,
+ "default_se": 6.488760215983286,
+ "margin_over_default": 460.20762235920756,
+ "margin_se": 16.846787125456732,
+ "margin_beyond_2se": true,
+ "reference_plugin_oracle": 1.180983075763996,
+ "reference_se": 0.0719781146604753,
+ "edges": [
+  "batch_size=250 (min)",
+  "discriminator_steps=5 (max)",
+  "epochs=300 (min)",
+  "pac=1 (min)"
+ ],
+ "failed_fits": 0,
+ "stage2_table": [
+  {
+   "trial": 5,
+   "default": false,
+   "stage1": 152.829945793918,
+   "stage2_mean": 193.5311417268841,
+   "stage2_se": 15.5470327493682,
+   "fit_s": 613.4067804000006,
+   "params": {
+    "batch_size": 250,
+    "discriminator_dim": [
+     256,
+     256,
+     256
+    ],
+    "discriminator_lr": 0.000212,
+    "discriminator_steps": 5,
+    "embedding_dim": 128,
+    "epochs": 300,
+    "generator_dim": [
+     128,
+     128,
+     128
+    ],
+    "generator_lr": 0.000329,
+    "pac": 1
+   }
+  },
+  {
+   "trial": 13,
+   "default": false,
+   "stage1": 128.58284900084595,
+   "stage2_mean": 206.1878673557646,
+   "stage2_se": 42.204421509151985,
+   "fit_s": 949.3258013999985,
+   "params": {
+    "batch_size": 500,
+    "discriminator_dim": [
+     512,
+     512,
+     512
+    ],
+    "discriminator_lr": 0.000172,
+    "discriminator_steps": 1,
+    "embedding_dim": 64,
+    "epochs": 900,
+    "generator_dim": [
+     512,
+     512,
+     512
+    ],
+    "generator_lr": 0.000102,
+    "pac": 1
+   }
+  },
+  {
+   "trial": 19,
+   "default": false,
+   "stage1": 186.30587160676475,
+   "stage2_mean": 370.50003099456785,
+   "stage2_se": 58.69213200161728,
+   "fit_s": 313.69477389999884,
+   "params": {
+    "batch_size": 250,
+    "discriminator_dim": [
+     256,
+     256,
+     256
+    ],
+    "discriminator_lr": 0.000268,
+    "discriminator_steps": 2,
+    "embedding_dim": 128,
+    "epochs": 300,
+    "generator_dim": [
+     256,
+     256,
+     256
+    ],
+    "generator_lr": 0.0005,
+    "pac": 1
+   }
+  },
+  {
+   "trial": 0,
+   "default": true,
+   "stage1": 732.8796290584113,
+   "stage2_mean": 653.7387640860917,
+   "stage2_se": 6.488760215983286,
+   "fit_s": 76.87494370000059,
+   "params": {}
+  }
+ ]
+}

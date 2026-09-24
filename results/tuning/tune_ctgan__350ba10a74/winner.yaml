@@ -1,0 +1,19 @@
+generator: ctgan
+generator_kwargs:
+  enable_gpu: false
+  params:
+    batch_size: 250
+    discriminator_dim:
+    - 256
+    - 256
+    - 256
+    discriminator_lr: 0.000212
+    discriminator_steps: 5
+    embedding_dim: 128
+    epochs: 300
+    generator_dim:
+    - 128
+    - 128
+    - 128
+    generator_lr: 0.000329
+    pac: 1

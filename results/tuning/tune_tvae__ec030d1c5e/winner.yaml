@@ -1,0 +1,4 @@
+generator: tvae
+generator_kwargs:
+  enable_gpu: false
+  params: {}

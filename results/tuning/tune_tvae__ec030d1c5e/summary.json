@@ -1,0 +1,109 @@
+{
+ "name": "tune_tvae",
+ "hash": "ec030d1c5e",
+ "generator": "tvae",
+ "selection_rule": "one-standard-error, cheapest within 1 SE of the best mean",
+ "best_by_mean_trial": 0,
+ "best_by_mean_score": 75.46856134997464,
+ "best_by_mean_se": 25.485470934929708,
+ "best_by_mean_fit_s": 29.179487100000188,
+ "winner_trial": 0,
+ "winner_is_default": true,
+ "winner_fit_s": 29.179487100000188,
+ "winner_params": {},
+ "winner_score": 75.46856134997464,
+ "winner_se": 25.485470934929708,
+ "default_score": 75.46856134997464,
+ "default_se": 25.485470934929708,
+ "margin_over_default": 0.0,
+ "margin_se": 36.041898639642916,
+ "margin_beyond_2se": false,
+ "reference_plugin_oracle": 1.180983075763996,
+ "reference_se": 0.0719781146604753,
+ "edges": [],
+ "failed_fits": 0,
+ "stage2_table": [
+  {
+   "trial": 0,
+   "default": true,
+   "stage1": 67.10879647317091,
+   "stage2_mean": 75.46856134997464,
+   "stage2_se": 25.485470934929708,
+   "fit_s": 29.179487100000188,
+   "params": {}
+  },
+  {
+   "trial": 28,
+   "default": false,
+   "stage1": 59.935578538107585,
+   "stage2_mean": 79.25507901108548,
+   "stage2_se": 17.64718429214893,
+   "fit_s": 370.2695061000004,
+   "params": {
+    "batch_size": 500,
+    "compress_dims": [
+     256,
+     256,
+     256
+    ],
+    "decompress_dims": [
+     128,
+     128
+    ],
+    "embedding_dim": 256,
+    "epochs": 900,
+    "l2scale": 0.000133,
+    "loss_factor": 2.4
+   }
+  },
+  {
+   "trial": 8,
+   "default": false,
+   "stage1": 72.86959026031995,
+   "stage2_mean": 82.69646899370171,
+   "stage2_se": 2.620832794761845,
+   "fit_s": 64.47518149999996,
+   "params": {
+    "batch_size": 1000,
+    "compress_dims": [
+     128,
+     128
+    ],
+    "decompress_dims": [
+     128,
+     128,
+     128
+    ],
+    "embedding_dim": 256,
+    "epochs": 600,
+    "l2scale": 7.51e-05,
+    "loss_factor": 3.67
+   }
+  },
+  {
+   "trial": 29,
+   "default": false,
+   "stage1": 67.91958212297915,
+   "stage2_mean": 176.13395564498379,
+   "stage2_se": 79.24138703772968,
+   "fit_s": 100.42144749999989,
+   "params": {
+    "batch_size": 1000,
+    "compress_dims": [
+     128,
+     128,
+     128
+    ],
+    "decompress_dims": [
+     256,
+     256,
+     256
+    ],
+    "embedding_dim": 32,
+    "epochs": 900,
+    "l2scale": 0.000105,
+    "loss_factor": 2.1
+   }
+  }
+ ]
+}

@@ -7,10 +7,14 @@
                should NOT for a deterministic fit (MLE oracle, synthpop proper=FALSE)
   3. dispersion  Var(synthetic col) / Var(real col), should sit near 1
   4. timing    seconds per fit and per file at the requested n_org and r
+  5. moments   which of the propensity model's ten moments the synthetic files
+               miss (z-scores of the mean difference, worst first), and the
+               pMSE ratio: the "why" behind a bad tuning score
 
 Usage:
   python -m src.harness.check_generator --generator ctgan --n-org 2000 --r 2
   python -m src.harness.check_generator --generator synthpop --kwargs '{"proper": true}'
+  python -m src.harness.check_generator --winner results/tuning/<run>/winner.yaml --n-org 5000
 """
 from __future__ import annotations
 
@@ -21,8 +25,9 @@ import time
 import numpy as np
 import pandas as pd
 
-from src.data.simulation import SimulationDGP
+from src.data.simulation import FORMULA, SimulationDGP
 from src.evaluation.estimands import estimands_fast
+from src.evaluation.pmse import MomentFeatures, pmse_score
 from src.harness.run import make_generator_by_name
 
 EXPECTED = ["y", "x1", "x2"]
@@ -95,15 +100,45 @@ def check(name: str, kwargs: dict, n_org: int, r: int) -> None:
         print(f"              projected: Steps 1-2 at m={m}, R={R}: {steps12/3600:6.1f} h   "
               f"one ensemble step at K={K}, R={R}: {step34/3600:6.1f} h")
 
+    # 5. moments
+    feats = MomentFeatures(FORMULA).fit(real)
+    Fr = feats.transform(real)
+    zs = []
+    for f in files:
+        Fs = feats.transform(f)
+        se = np.sqrt(Fr.var(axis=0, ddof=1) / len(Fr) + Fs.var(axis=0, ddof=1) / len(Fs))
+        zs.append((Fs.mean(axis=0) - Fr.mean(axis=0)) / se)
+    z = np.mean(zs, axis=0)
+    order = np.argsort(-np.abs(z))
+    # pMSE at r = 1 (first n_org rows), the scale used in tuning: the null
+    # reference shifts with the synthetic sample size.
+    ratios = [pmse_score(real, f.iloc[:n_org], feats).ratio for f in files]
+    print(f"[5 moments]   pMSE ratio at r=1: {np.mean(ratios):.1f} (tuning scale; correct plug-in"
+          f" fit about 1, proper about 2).  Moment mismatch z, worst first:")
+    print("              " + "   ".join(f"{feats.names[j]} {z[j]:+.1f}" for j in order))
+    bad = [feats.names[j] for j in order if abs(z[j]) > 4]
+    if bad:
+        print(f"              -> |z| > 4: {', '.join(bad)}")
+
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--generator", required=True)
+    ap.add_argument("--generator")
+    ap.add_argument("--winner", help="winner.yaml from a tuning run (sets generator and kwargs)")
     ap.add_argument("--kwargs", default="{}", help="JSON, e.g. '{\"proper\": true}'")
     ap.add_argument("--n-org", type=int, default=2000)
     ap.add_argument("--r", type=int, default=2)
     a = ap.parse_args()
-    check(a.generator, json.loads(a.kwargs), a.n_org, a.r)
+    if a.winner:
+        import yaml
+        w = yaml.safe_load(open(a.winner))
+        name, kwargs = w["generator"], w.get("generator_kwargs", {})
+        print(f"{a.winner}: {name} {kwargs}")
+    elif a.generator:
+        name, kwargs = a.generator, json.loads(a.kwargs)
+    else:
+        ap.error("give --generator or --winner")
+    check(name, kwargs, a.n_org, a.r)
 
 
 if __name__ == "__main__":
