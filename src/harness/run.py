@@ -45,6 +45,9 @@ def make_generator_by_name(name: str, kwargs: dict):
     if name == "synthpop":
         from src.generators.synthpop_generator import SynthpopGenerator
         return SynthpopGenerator(**kwargs)
+    if name == "tabpfn":
+        from src.generators.tabpfn_generator import TabPFNGenerator
+        return TabPFNGenerator(**kwargs)
     raise ValueError(f"unknown generator {name!r}")
 
 
