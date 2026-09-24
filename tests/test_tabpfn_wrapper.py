@@ -30,6 +30,7 @@ class _Unsup:
         return self
 
     def generate_synthetic_data(self, n_samples, t, n_permutations):
+        self.calls = getattr(self, "calls", []) + [n_samples]
         rows = np.random.default_rng(np.random.randint(1 << 30)).integers(0, len(self.X_), n_samples)
         return self.X_[rows]                       # resample context rows: order preserved
 
@@ -44,6 +45,8 @@ def fake_tabpfn(monkeypatch):
     for name, mod in {"tabpfn": tabpfn, "tabpfn_extensions": ext,
                       "tabpfn_extensions.unsupervised": uns}.items():
         monkeypatch.setitem(sys.modules, name, mod)
+    import src.generators.tabpfn_generator as T
+    monkeypatch.setattr(T, "_WARMED_UP", False)            # a fresh "process" per test
 
 
 def test_order_seeds_and_output(fake_tabpfn):
@@ -53,6 +56,7 @@ def test_order_seeds_and_output(fake_tabpfn):
     m = _Unsup.last
     assert m.clf.kw["random_state"] == 7 and m.reg.kw["ignore_pretraining_limits"]
     assert m.cat == [0]                              # x2 first in the visit order
+    assert m.calls == [2]                            # warm-up happened inside fit()
     np.testing.assert_allclose(m.X_[:, 2], d["y"].to_numpy(np.float32))
     a, b, c = (g.generate(200, gen_seed=s) for s in (1, 1, 2))
     assert list(a.columns) == ["y", "x1", "x2"] and all(a.dtypes == float)
@@ -66,3 +70,16 @@ def test_rejects_badly_coded_discrete_column(fake_tabpfn):
     d["x2"] = d["x2"] + 1                            # coded 1/2
     with pytest.raises(ValueError, match="0..K-1"):
         TabPFNGenerator().fit(d, train_seed=1)
+
+
+def test_warm_up_once_per_process_and_cache_pinned(fake_tabpfn, monkeypatch):
+    import os
+    from src.generators.tabpfn_generator import TabPFNGenerator
+    monkeypatch.setenv("TABPFN_MODEL_CACHE_SIZE", "0")
+    d = SimulationDGP().sample(100, np.random.default_rng(2))
+    TabPFNGenerator().fit(d, train_seed=1)
+    first = _Unsup.last
+    TabPFNGenerator().fit(d, train_seed=2)
+    second = _Unsup.last
+    assert first.calls == [2] and not hasattr(second, "calls")
+    assert os.environ["TABPFN_MODEL_CACHE_SIZE"] == "2"

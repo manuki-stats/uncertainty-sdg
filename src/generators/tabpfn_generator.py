@@ -27,11 +27,26 @@ Seeds: `random_state` of both TabPFN estimators = training seed. Sampling uses
 torch's global RNG and the permutations use Python's `random`, so every
 generate() call seeds those globally with the generation seed.
 
+Warm-up: the first generation in a PROCESS does one-time initialisation that
+draws from torch's global RNG, so without it the first file differs from every
+later file with the same seed (measured: max difference 15 on y). The first
+fit() in a process therefore generates a throwaway 2-row file; later fits skip
+it, since it costs a full context pass (~20 s at 500 context rows on CPU).
+
+Built-model cache: TabPFN refits (and by default rebuilds the network) once per
+column per permutation, nine times per file. TABPFN_MODEL_CACHE_SIZE=2 keeps the
+built classifier and regressor, which cut the cost per file by about a third.
+Rebuilding also draws from torch's RNG, so the cache setting changes which
+file a seed produces. The wrapper therefore sets it itself rather than leaving
+it to the environment.
+
 Size limits: TabPFN refuses CPU inference on more than 1,000 context rows by
 default (too slow); `ignore_pretraining_limits=True` lifts that and the
 10,000-row pretraining limit. Use a GPU for n_org in the thousands.
 """
 from __future__ import annotations
+
+import os
 
 import numpy as np
 import pandas as pd
@@ -41,6 +56,8 @@ from src.seeds import set_global_seeds
 from .base import Generator
 
 ORDER = ("x2", "x1", "y")
+MODEL_CACHE_SIZE = "2"
+_WARMED_UP = False                                # per process, see the docstring
 DISCRETE = ("x2",)
 
 
@@ -49,7 +66,8 @@ class TabPFNGenerator(Generator):
 
     def __init__(self, temperature: float = 1.0, n_permutations: int = 3,
                  device: str = "auto", order=ORDER, discrete_columns=DISCRETE,
-                 ignore_pretraining_limits: bool = True, params: dict | None = None):
+                 ignore_pretraining_limits: bool = True, params: dict | None = None,
+                 warmup: bool = True):
         self.temperature = float(temperature)
         self.n_permutations = int(n_permutations)
         self.device = device
@@ -57,9 +75,12 @@ class TabPFNGenerator(Generator):
         self.discrete_columns = list(discrete_columns)
         self.ignore_pretraining_limits = ignore_pretraining_limits
         self.params = dict(params or {})          # extra TabPFN estimator kwargs
+        self.warmup = warmup
         self._model = None
 
     def fit(self, data: pd.DataFrame, *, train_seed: int):
+        global _WARMED_UP
+        os.environ["TABPFN_MODEL_CACHE_SIZE"] = MODEL_CACHE_SIZE
         from tabpfn import TabPFNClassifier, TabPFNRegressor
         from tabpfn_extensions.unsupervised import TabPFNUnsupervisedModel
         _silence_progress_bars()
@@ -81,6 +102,11 @@ class TabPFNGenerator(Generator):
         self._model.set_categorical_features(
             [self.order.index(c) for c in self.discrete_columns])
         self._model.fit(data[self.order].to_numpy(dtype=np.float32))
+        if self.warmup and not _WARMED_UP:
+            set_global_seeds(int(train_seed))
+            self._model.generate_synthetic_data(
+                n_samples=2, t=self.temperature, n_permutations=self.n_permutations)
+            _WARMED_UP = True
         return self
 
     def generate(self, n: int, *, gen_seed: int) -> pd.DataFrame:
