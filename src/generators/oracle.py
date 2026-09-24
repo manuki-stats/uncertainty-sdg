@@ -16,10 +16,10 @@ Three modes, differing only in where theta comes from:
 
   proper    fresh theta* from the posterior for EVERY file (Rubin's first stage)
   plugin    the MLE, no posterior draw at all (Reiter & Kinney 2012)
-  ordinary  ONE posterior draw at fit time, frozen for every file
+  single_draw  ONE posterior draw at fit time, frozen for every file
 
 Under the SDA, plugin and proper are both valid with the right estimator;
-ordinary is not, because a single draw displaces the estimate by a posterior
+single_draw is not, because a single draw displaces the estimate by a posterior
 standard deviation that nothing in the release reflects.
 """
 from __future__ import annotations
@@ -29,7 +29,7 @@ import pandas as pd
 
 from .base import Generator
 
-MODES = ("proper", "plugin", "ordinary")
+MODES = ("proper", "plugin", "single_draw")
 
 
 class ParametricOracle(Generator):
@@ -63,7 +63,7 @@ class ParametricOracle(Generator):
         self._k = X.shape[1]
         self._chol = np.linalg.cholesky(xtx_inv)
 
-        if self.mode == "ordinary":
+        if self.mode == "single_draw":
             self._frozen = self._draw_theta(np.random.default_rng(train_seed))
         return self
 

@@ -1,7 +1,7 @@
-# Oracle gate, ordinary synthesis. Values provisional until Ch. 4 fixes n_org, r, m, K.
-name: oracle_ordinary
+# Oracle gate, single-draw synthesis. Values provisional until Ch. 4 fixes n_org, r, m, K.
+name: oracle_single_draw
 generator: oracle
-generator_kwargs: {mode: ordinary}
+generator_kwargs: {mode: single_draw}
 dataset: simulation
 target: population
 n_org: 2000

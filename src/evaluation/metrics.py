@@ -34,7 +34,11 @@ def mc_standard_error(rate: float, n_reps: int) -> float:
 
 
 def rmse_foil(estimates: Sequence[float], truth) -> float:
-    """Reported as the foil, never as evidence of valid inference."""
+    """Estimate-level RMSE of the pooled point estimate around the truth, across
+    replications. Reported as the foil, never as evidence of valid inference: a
+    generator can post a small RMSE with intervals that miss. Record-level
+    reconstruction error is undefined under full synthesis, since no synthetic
+    record corresponds to an original one."""
     err = np.asarray(estimates, dtype=float) - np.asarray(truth, dtype=float)
     err = err[np.isfinite(err)]
     return float(np.sqrt(np.mean(err**2))) if err.size else float("nan")
