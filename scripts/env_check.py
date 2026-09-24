@@ -31,11 +31,15 @@ def check(name, fn):
 
 
 def versions():
+    from importlib.metadata import version
     out = []
-    for mod in ["numpy", "scipy", "pandas", "statsmodels", "patsy", "yaml",
-                "torch", "ctgan", "tabpfn", "tabpfn_extensions", "rpy2"]:
-        m = importlib.import_module(mod)
-        out.append(f"{mod} {getattr(m, '__version__', '?')}")
+    for mod, dist in [("numpy", "numpy"), ("scipy", "scipy"), ("pandas", "pandas"),
+                      ("statsmodels", "statsmodels"), ("patsy", "patsy"),
+                      ("yaml", "pyyaml"), ("torch", "torch"), ("ctgan", "ctgan"),
+                      ("tabpfn", "tabpfn"), ("tabpfn_extensions", "tabpfn-extensions"),
+                      ("rpy2", "rpy2")]:
+        importlib.import_module(mod)          # the import is the check
+        out.append(f"{dist} {version(dist)}")
     return "; ".join(out)
 
 
@@ -45,12 +49,14 @@ def torch_info():
     if not torch.cuda.is_available():
         return msg + ", GPU: none visible (fine on CPU nodes)"
     x = torch.randn(2048, 2048, device="cuda")
+    (x @ x).sum().item()                  # first call pays CUDA/cuBLAS start-up
     torch.cuda.synchronize()
     t = time.perf_counter()
-    (x @ x).sum().item()
+    for _ in range(10):
+        (x @ x).sum().item()
     torch.cuda.synchronize()
     return (msg + f", GPU: {torch.cuda.get_device_name(0)}, "
-            f"matmul ok in {1000 * (time.perf_counter() - t):.1f} ms")
+            f"2048x2048 matmul {100 * (time.perf_counter() - t):.2f} ms each")
 
 
 def r_info():
