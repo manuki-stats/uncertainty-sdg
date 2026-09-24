@@ -43,21 +43,26 @@ seed is written with every result row. Runs are idempotent (a completed
 
 ## Environment
 
-Python 3.10 in the conda env `synth`. Pinned in `requirements.txt` (torch 2.2.2,
-opacus 1.4.0, synthcity 0.2.12, rpy2 3.6.7 --- these versions are load-bearing;
-synthcity requires torch < 2.3).
+One conda env, `synth2`, holds everything: Python 3.10, R 4.5.1, synthpop and
+rpy2 come from conda-forge (`environment.yml`); the Python packages come from pip
+(`requirements.txt`). These files build the env on the LRZ cluster (Linux; the
+PyPI `torch` wheel there is the CUDA 13.0 build). The laptop env (Windows, CPU
+torch, system R) predates them; see the note below.
 
 ```
-conda create -n synth python=3.10 -y
-conda activate synth
-pip install -r requirements.txt
+mamba env create -f environment.yml
+conda activate synth2
+pip install --no-cache-dir -r requirements.txt
+python scripts/env_check.py      # versions, torch/CUDA, the R bridge (tiny syn() call)
+pytest -q                        # 23 passed
 ```
 
-**R bridge (Windows).** synthpop runs in native R (4.5.1) via rpy2. rpy2 must
-find R: set `R_HOME` and put R's `bin\x64` on PATH. This is wired into the conda
-env via an activation script:
-`%CONDA_PREFIX%\etc\conda\activate.d\rpy2_env.bat`, so `conda activate synth`
-sets it automatically. R must have `synthpop` installed (`install.packages("synthpop")`).
+`environment-lock.yml` records the exact versions resolved on the cluster
+(`conda env export --no-builds`). synthcity and TabDDPM are no longer used.
+
+**Windows.** If R comes from a system install instead of conda, rpy2 must find it:
+set `R_HOME` and put R's `bin\x64` on PATH (an activation script in
+`%CONDA_PREFIX%\etc\conda\activate.d\` does this), and install synthpop in that R.
 
 ## Tuning
 
