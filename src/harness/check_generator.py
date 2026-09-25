@@ -6,7 +6,8 @@
                not judged: it should for neural nets and proper synthpop, and
                should NOT for a deterministic fit (MLE oracle, synthpop proper=FALSE)
   3. dispersion  Var(synthetic col) / Var(real col), should sit near 1
-  4. timing    seconds per fit and per file at the requested n_org and r
+  4. timing    seconds per fit and per file at the requested n_org and r; the
+               projection uses the second (steady-state) fit and file, serial
   5. moments   which of the propensity model's ten moments the synthetic files
                miss (z-scores of the mean difference, worst first), and the
                pMSE ratio: the "why" behind a bad tuning score
@@ -69,8 +70,12 @@ def check(name: str, kwargs: dict, n_org: int, r: int) -> None:
 
     # 2. seeds
     f1_again = g.generate(n_syn, gen_seed=1)
+    t0 = time.perf_counter()
     f2 = g.generate(n_syn, gen_seed=2)
+    t_gen2 = time.perf_counter() - t0
+    t0 = time.perf_counter()
     g2 = make_generator_by_name(name, kwargs).fit(real, train_seed=12)
+    t_fit2 = time.perf_counter() - t0
     f3 = g2.generate(n_syn, gen_seed=1)
     same = f1.equals(f1_again)
     diff_gen = not f1.equals(f2)
@@ -93,10 +98,14 @@ def check(name: str, kwargs: dict, n_org: int, r: int) -> None:
         print("              -> dispersion off by >20% in some column; investigate before running.")
 
     # 4. timing
-    print(f"[4 timing]    n_org={n_org} r={r}:  fit {t_fit:.1f}s   one file {t_gen:.2f}s")
+    # The first fit and file in a process also pay one-off costs (loading
+    # weights, CUDA start-up, TabPFN's warm-up), paid once per job, not per fit.
+    # Project from the second fit and file.
+    print(f"[4 timing]    n_org={n_org} r={r}:  first fit {t_fit:.1f}s, first file {t_gen:.2f}s"
+          f"  (incl. one-off start-up)   steady: fit {t_fit2:.1f}s, file {t_gen2:.2f}s")
     for m, K, R in ((10, 10, 100), (10, 10, 1000)):
-        steps12 = R * (t_fit + m * t_gen)
-        step34 = R * K * (t_fit + t_gen)
+        steps12 = R * (t_fit2 + m * t_gen2)
+        step34 = R * K * (t_fit2 + t_gen2)
         print(f"              projected: Steps 1-2 at m={m}, R={R}: {steps12/3600:6.1f} h   "
               f"one ensemble step at K={K}, R={R}: {step34/3600:6.1f} h")
 
