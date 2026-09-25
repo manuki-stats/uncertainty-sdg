@@ -11,6 +11,16 @@ seeds CUDA with the same seed before each fit() and sample(), and by default
 switches torch to deterministic kernels (`deterministic=True`), without which
 cuBLAS may still sum in a different order from run to run. On CPU both are no-ops.
 
+Discrete columns at generation (`fix_condvec`, CTGAN only): during training
+CTGAN picks the conditional vector from log-flattened category frequencies
+("training-by-sampling", Xu et al. 2019), so rare categories are seen more
+often. ctgan 0.12.1 then reuses those log-flattened probabilities in
+`sample_original_condvec`, whose own docstring says generation uses the
+original frequencies: every categorical marginal is pulled toward uniform (x2:
+0.40 -> 0.49). With `fix_condvec=True` the wrapper leaves training untouched and,
+after fit(), replaces those probabilities with the empirical category shares of
+the training data, so generation does what the package documents.
+
 Both models treat every column as continuous unless told otherwise, so the
 wrapper declares the discrete columns and casts them back to float 0/1 on the
 way out, which is what the estimand code expects.
@@ -22,6 +32,7 @@ from __future__ import annotations
 
 import os
 
+import numpy as np
 import pandas as pd
 
 # Deterministic cuBLAS needs this set before the first GPU matmul of the process.
@@ -36,11 +47,13 @@ class _CtganBase(Generator):
     _cls = None  # set by subclasses
 
     def __init__(self, params: dict | None = None, discrete_columns=DISCRETE,
-                 enable_gpu: bool = False, deterministic: bool = True):
+                 enable_gpu: bool = False, deterministic: bool = True,
+                 fix_condvec: bool = False):
         self.params = dict(params or {})
         self.discrete_columns = list(discrete_columns)
         self.enable_gpu = enable_gpu
         self.deterministic = deterministic
+        self.fix_condvec = fix_condvec
         self._model = None
 
     def _seed_gpu(self, seed: int) -> None:
@@ -61,6 +74,11 @@ class _CtganBase(Generator):
         self._model.set_random_state(int(train_seed))
         self._seed_gpu(train_seed)
         self._model.fit(data, discrete_columns=self.discrete_columns)
+        if self.fix_condvec:
+            sampler = getattr(self._model, "_data_sampler", None)
+            if sampler is None:
+                raise ValueError(f"fix_condvec: {self.name} has no conditional vector")
+            use_empirical_condvec(sampler)
         return self
 
     def generate(self, n: int, *, gen_seed: int) -> pd.DataFrame:
@@ -73,6 +91,21 @@ class _CtganBase(Generator):
         for c in self.discrete_columns:
             out[c] = pd.to_numeric(out[c], errors="coerce").astype(float)
         return out.astype(float)
+
+
+def use_empirical_condvec(sampler) -> None:
+    """Set a fitted ctgan DataSampler's category probabilities to the empirical
+    shares of the training data, for generation only (training is over).
+
+    `_rid_by_cat_cols[i][j]` holds the training rows in category j of discrete
+    column i, in the same column order as the rows of
+    `_discrete_column_category_prob`, so the counts are exact.
+    """
+    probs = sampler._discrete_column_category_prob
+    for i, rows_by_cat in enumerate(sampler._rid_by_cat_cols):
+        counts = np.array([len(r) for r in rows_by_cat], dtype=float)
+        probs[i, :] = 0.0
+        probs[i, : len(counts)] = counts / counts.sum()
 
 
 class CTGANGenerator(_CtganBase):

@@ -1,6 +1,8 @@
 """How often does TabPFN generate non-finite or wildly extreme values?
 
-The r = 2 benchmark produced a file with y = inf. This fits TabPFN once at
+The r = 2 benchmark produced a file with y = inf. Since the wrapper rejects
+and redraws non-finite rows, "nonfin" should now always be 0 and the last
+column counts the rows rejected per file. This fits TabPFN once at
 n_org and generates many files, counting per file and column
   - non-finite values (NaN, +-inf), and
   - extreme values: more than 10 real-data SDs from the real-data mean
@@ -36,7 +38,8 @@ mu, sd = real.mean(), real.std()
 g = make_generator_by_name("tabpfn", json.loads(a.kwargs)).fit(real, train_seed=11)
 n_syn = a.r * a.n_org
 print(f"n_org {a.n_org}, r {a.r}: {a.n_files} files of {n_syn} rows")
-print(f"{'seed':>4} {'sec':>5}  " + "  ".join(f"{c:>18}" for c in real.columns) + "   y range")
+print(f"{'seed':>4} {'sec':>5}  " + "  ".join(f"{c:>18}" for c in real.columns)
+      + "   y range            rejected")
 
 tot_rows = tot_bad = files_bad = 0
 tails = {"low": 0, "high": 0}
@@ -59,7 +62,8 @@ for s in range(1, a.n_files + 1):
     y = f["y"].to_numpy(dtype=float)
     yf = y[np.isfinite(y)]
     print(f"{s:4d} {secs:5.1f}  " + "  ".join(f"{x:>18}" for x in cells)
-          + f"   [{yf.min():.3g}, {yf.max():.3g}]")
+          + f"   [{yf.min():.3g}, {yf.max():.3g}]"
+          + f"   {getattr(g, 'last_n_rejected', 0)}")
     tot_rows += n_syn
     files_bad += any_bad
 

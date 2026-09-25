@@ -1,0 +1,30 @@
+# CTGAN, tuned winner t05 (results/tuning/tune_ctgan__350ba10a74/winner.yaml), on an H100.
+# deterministic: CUDA stream seeded + deterministic kernels (reproducibility contract).
+# fix_condvec: training as tuned; generation draws discrete columns from the empirical
+#   frequencies, as ctgan documents but 0.12.1 does not do (log-frequency bug).
+# Final design values (S5 benchmark, 25 Sept 2026): n_org 5000, r 2, m = K = 10.
+name: ctgan
+generator: ctgan
+generator_kwargs:
+  enable_gpu: true
+  deterministic: true
+  fix_condvec: true
+  params:
+    batch_size: 250
+    discriminator_dim: [256, 256, 256]
+    discriminator_lr: 0.000212
+    discriminator_steps: 5
+    embedding_dim: 128
+    epochs: 300
+    generator_dim: [128, 128, 128]
+    generator_lr: 0.000329
+    pac: 1
+dataset: simulation
+target: population
+n_org: 5000
+r: 2
+m: 10
+K: 10
+steps: [1, 2, 3, 4]
+estimators: [T_alt, T_s, T_s_ppd]
+alpha: 0.05

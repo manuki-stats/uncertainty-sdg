@@ -1,10 +1,11 @@
-# Oracle gate, proper synthesis. Values provisional until Ch. 4 fixes n_org, r, m, K.
+# Oracle gate, proper synthesis.
+# Final design values (S5 benchmark, 25 Sept 2026): n_org 5000, r 2, m = K = 10.
 name: oracle_proper
 generator: oracle
 generator_kwargs: {mode: proper}
 dataset: simulation
 target: population
-n_org: 2000
+n_org: 5000
 r: 2
 m: 10
 K: 10

@@ -58,6 +58,7 @@ from .base import Generator
 ORDER = ("x2", "x1", "y")
 MODEL_CACHE_SIZE = "2"
 _WARMED_UP = False                                # per process, see the docstring
+MAX_REDRAWS = 20
 DISCRETE = ("x2",)
 
 
@@ -77,6 +78,7 @@ class TabPFNGenerator(Generator):
         self.params = dict(params or {})          # extra TabPFN estimator kwargs
         self.warmup = warmup
         self._model = None
+        self.last_n_rejected = 0
 
     def fit(self, data: pd.DataFrame, *, train_seed: int):
         global _WARMED_UP
@@ -109,15 +111,40 @@ class TabPFNGenerator(Generator):
             _WARMED_UP = True
         return self
 
-    def generate(self, n: int, *, gen_seed: int) -> pd.DataFrame:
-        if self._model is None:
-            raise RuntimeError("generate() before fit()")
-        set_global_seeds(int(gen_seed))
+    def _draw(self, n: int, seed: int) -> pd.DataFrame:
+        set_global_seeds(int(seed))
         out = self._model.generate_synthetic_data(
             n_samples=int(n), t=self.temperature, n_permutations=self.n_permutations)
         arr = out.detach().cpu().numpy() if hasattr(out, "detach") else np.asarray(out)
-        df = pd.DataFrame(arr, columns=self.order)[self._columns]
-        return df.astype(float)
+        return pd.DataFrame(arr, columns=self.order)[self._columns].astype(float)
+
+    def generate(self, n: int, *, gen_seed: int) -> pd.DataFrame:
+        """n rows, all finite. TabPFN's sampler inverts the predictive CDF bucket
+        by bucket; when a tail bucket's float32 probability is ~0 it can return
+        +-inf (about 1 value in 10^5 rows at n_org 5000). Such rows are rejected
+        and redrawn with seeds derived from gen_seed, so a file is still
+        reproducible from its seed; `last_n_rejected` counts the rejected rows
+        and the harness records it. Finite extremes are kept: they are draws
+        from TabPFN's predictive distribution, not arithmetic failures."""
+        if self._model is None:
+            raise RuntimeError("generate() before fit()")
+        df = self._draw(n, gen_seed)
+        bad = ~np.isfinite(df.to_numpy()).all(axis=1)
+        self.last_n_rejected = int(bad.sum())
+        attempt = 0
+        while bad.any():
+            attempt += 1
+            if attempt > MAX_REDRAWS:
+                raise RuntimeError(f"{int(bad.sum())} rows still non-finite after "
+                                   f"{MAX_REDRAWS} redraws")
+            k = int(bad.sum())
+            seed = np.random.SeedSequence(entropy=int(gen_seed), spawn_key=(attempt,))
+            extra = self._draw(max(k, 2), int(seed.generate_state(1, np.uint32)[0])).iloc[:k]
+            df.loc[bad, :] = extra.to_numpy()
+            new_bad = ~np.isfinite(extra.to_numpy()).all(axis=1)
+            self.last_n_rejected += int(new_bad.sum())
+            bad = ~np.isfinite(df.to_numpy()).all(axis=1)
+        return df
 
 
 def _silence_progress_bars() -> None:

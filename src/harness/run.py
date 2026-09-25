@@ -17,7 +17,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
+import platform
 import subprocess
+import sys
 import time
 
 import numpy as np
@@ -90,11 +93,11 @@ def _rows(base: dict, pooled_or_interval, targets: np.ndarray, j: int) -> list[d
     return out
 
 
-def _pool_step(step, files, real, analyse, targets, cfg, base, t_fit, t_gen):
+def _pool_step(step, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_rej):
     Q, U = zip(*(analyse(f) for f in files))
     Q, U = np.array(Q), np.array(U)
     base = {**base, "step": step, "runtime_fit": t_fit, "runtime_gen": t_gen,
-            **_dispersion(files, real)}
+            "n_rejected": int(sum(n_rej)), **_dispersion(files, real)}
     rows = []
     for j in range(len(ESTIMAND_NAMES)):
         p = pool(Q[:, j], U[:, j], r=cfg.r, alpha=cfg.alpha, target=cfg.target,
@@ -119,24 +122,26 @@ def run_replication(cfg: ExperimentConfig, rep: int) -> list[dict]:
         gen = make_generator(cfg).fit(real, train_seed=derive_seed(cfg.seed0, rep, 2, "train"))
         t_fit = time.perf_counter() - t0
         t0 = time.perf_counter()
-        files = [gen.generate(cfg.n_syn, gen_seed=derive_seed(cfg.seed0, rep, 2, "gen", i))
-                 for i in range(n_files)]
+        files, n_rej = [], []
+        for i in range(n_files):
+            files.append(gen.generate(cfg.n_syn, gen_seed=derive_seed(cfg.seed0, rep, 2, "gen", i)))
+            n_rej.append(_rejected(gen))
         t_gen = time.perf_counter() - t0
 
         if 1 in cfg.steps:
             q, u = analyse(files[0])
             b1 = {**base, "step": 1, "runtime_fit": t_fit, "runtime_gen": t_gen / n_files,
-                  **_dispersion(files[:1], real)}
+                  "n_rejected": n_rej[0], **_dispersion(files[:1], real)}
             for j in range(len(ESTIMAND_NAMES)):
                 rows += _rows(b1, naive(q[j], u[j], cfg.alpha), targets, j)
         if 2 in cfg.steps:
-            rows += _pool_step(2, files, real, analyse, targets, cfg, base, t_fit, t_gen)
+            rows += _pool_step(2, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_rej)
 
     # Steps 3 and 4: K fits, one file each
     for step in (3, 4):
         if step not in cfg.steps:
             continue
-        files, t_fit, t_gen = [], 0.0, 0.0
+        files, n_rej, t_fit, t_gen = [], [], 0.0, 0.0
         for k in range(cfg.K):
             if step == 4:
                 boot_seed = derive_seed(cfg.seed0, rep, 4, "boot", k)
@@ -151,10 +156,30 @@ def run_replication(cfg: ExperimentConfig, rep: int) -> list[dict]:
             t0 = time.perf_counter()
             files.append(gen.generate(
                 cfg.n_syn, gen_seed=derive_seed(cfg.seed0, rep, step, "gen", k)))
+            n_rej.append(_rejected(gen))
             t_gen += time.perf_counter() - t0
-        rows += _pool_step(step, files, real, analyse, targets, cfg, base, t_fit, t_gen)
+        rows += _pool_step(step, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_rej)
 
     return rows
+
+
+def _rejected(gen) -> int:
+    """Rows the generator rejected in its last generate() call (TabPFN only)."""
+    return int(getattr(gen, "last_n_rejected", 0))
+
+
+def provenance() -> dict:
+    """Where and how a chunk ran. Results are reproducible given the config and
+    seeds only on the same kind of hardware and thread count: floating-point
+    sums in a different order change a neural net's training path."""
+    threads = os.environ.get("OMP_NUM_THREADS", "")
+    gpu = ""
+    if "torch" in sys.modules:                     # only if a generator loaded it
+        import torch
+        threads = str(torch.get_num_threads())
+        if torch.cuda.is_available():
+            gpu = torch.cuda.get_device_name(0)
+    return {"node": platform.node(), "threads": threads, "gpu": gpu}
 
 
 def code_version() -> str:
@@ -184,9 +209,11 @@ def run(cfg: ExperimentConfig, start: int, stop: int, chunk_size: int) -> None:
         rows = []
         for rep in range(c0, c1):
             rows += run_replication(cfg, rep)
+        prov = provenance()
         for row in rows:
             row["config_hash"] = h
             row["code_version"] = version
+            row.update(prov)
         write_chunk(rows, path)
         print(f"  {path.name}  {time.perf_counter() - t0:6.1f}s", flush=True)
 

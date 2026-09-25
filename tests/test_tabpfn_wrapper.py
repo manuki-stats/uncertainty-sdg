@@ -29,10 +29,15 @@ class _Unsup:
         self.X_ = X
         return self
 
+    inject_inf = False                               # set by the rejection test
+
     def generate_synthetic_data(self, n_samples, t, n_permutations):
         self.calls = getattr(self, "calls", []) + [n_samples]
         rows = np.random.default_rng(np.random.randint(1 << 30)).integers(0, len(self.X_), n_samples)
-        return self.X_[rows]                       # resample context rows: order preserved
+        out = self.X_[rows].copy()                  # resample context rows: order preserved
+        if _Unsup.inject_inf and n_samples >= 100:  # full files only, never the redraws
+            out[5, 2] = np.inf                      # y is last in the visit order
+        return out
 
 
 @pytest.fixture
@@ -83,3 +88,16 @@ def test_warm_up_once_per_process_and_cache_pinned(fake_tabpfn, monkeypatch):
     second = _Unsup.last
     assert first.calls == [2] and not hasattr(second, "calls")
     assert os.environ["TABPFN_MODEL_CACHE_SIZE"] == "2"
+
+
+def test_non_finite_rows_are_rejected_and_redrawn(fake_tabpfn, monkeypatch):
+    from src.generators.tabpfn_generator import TabPFNGenerator
+    monkeypatch.setattr(_Unsup, "inject_inf", True)
+    d = SimulationDGP().sample(300, np.random.default_rng(3))
+    g = TabPFNGenerator().fit(d, train_seed=1)
+    a = g.generate(200, gen_seed=4)
+    assert len(a) == 200 and np.isfinite(a.to_numpy()).all()
+    assert g.last_n_rejected == 1
+    assert _Unsup.last.calls[-1] == 2              # one redraw call, of max(k, 2) rows
+    assert a.equals(g.generate(200, gen_seed=4))   # still reproducible from the seed
+    assert g.generate(200, gen_seed=5) is not None and g.last_n_rejected == 1

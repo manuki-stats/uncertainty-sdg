@@ -17,6 +17,7 @@ Usage:
   python -m src.harness.check_generator --generator synthpop --kwargs '{"proper": true}'
   python -m src.harness.check_generator --winner results/tuning/<run>/winner.yaml --n-org 5000
   python -m src.harness.check_generator --winner <...>/winner.yaml --kwargs '{"enable_gpu": true}'
+  python -m src.harness.check_generator --config configs/ctgan.yaml
 """
 from __future__ import annotations
 
@@ -54,7 +55,9 @@ def check(name: str, kwargs: dict, n_org: int, r: int) -> None:
     shape_ok = len(f1) == n_syn and n_bad == 0
     print(f"[1 runs]      columns {ok(cols_ok)}  floats {ok(float_ok)}  "
           f"x2 in {{0,1}} {ok(x2_ok)}  shape/finite {ok(shape_ok)}"
-          + (f"  <- {n_bad} non-finite values (NaN/inf)" if n_bad else ""))
+          + (f"  <- {n_bad} non-finite values (NaN/inf)" if n_bad else "")
+          + (f"  (rows rejected and redrawn: {g.last_n_rejected})"
+             if getattr(g, "last_n_rejected", 0) else ""))
     q, u = estimands_fast(f1)
     q_real, u_real = estimands_fast(real)
     # Expected sd of ONE file's estimate around the real one under proper
@@ -141,12 +144,21 @@ def check(name: str, kwargs: dict, n_org: int, r: int) -> None:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--generator")
+    ap.add_argument("--config", help="experiment config (sets generator, kwargs, n_org, r)")
     ap.add_argument("--winner", help="winner.yaml from a tuning run (sets generator and kwargs)")
     ap.add_argument("--kwargs", default="{}", help="JSON, e.g. '{\"proper\": true}'")
-    ap.add_argument("--n-org", type=int, default=2000)
-    ap.add_argument("--r", type=int, default=2)
+    ap.add_argument("--n-org", type=int, default=None, help="default: the config's, else 2000")
+    ap.add_argument("--r", type=int, default=None, help="default: the config's, else 2")
     a = ap.parse_args()
-    if a.winner:
+    n_org, r = a.n_org or 2000, a.r or 2
+    if a.config:
+        from src.config import ExperimentConfig
+        cfg = ExperimentConfig.from_yaml(a.config)
+        name = cfg.generator
+        kwargs = {**cfg.generator_kwargs, **json.loads(a.kwargs)}
+        n_org, r = a.n_org or cfg.n_org, a.r or cfg.r
+        print(f"{a.config}: {name} {kwargs}")
+    elif a.winner:
         import yaml
         w = yaml.safe_load(open(a.winner))
         # --kwargs on top of a winner overrides single keys, e.g. enable_gpu
@@ -155,8 +167,8 @@ def main():
     elif a.generator:
         name, kwargs = a.generator, json.loads(a.kwargs)
     else:
-        ap.error("give --generator or --winner")
-    check(name, kwargs, a.n_org, a.r)
+        ap.error("give --generator, --config or --winner")
+    check(name, kwargs, n_org, r)
 
 
 if __name__ == "__main__":

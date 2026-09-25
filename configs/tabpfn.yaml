@@ -1,0 +1,18 @@
+# TabPFN v3.5 via tabpfn-extensions at package defaults (n_estimators auto,
+# n_permutations 3, temperature 1), on an H100. Non-finite rows are rejected and
+# redrawn by the wrapper; each result row records how many (n_rejected).
+# Final design values (S5 benchmark, 25 Sept 2026): n_org 5000, r 2, m = K = 10.
+name: tabpfn
+generator: tabpfn
+generator_kwargs:
+  temperature: 1.0
+  n_permutations: 3
+dataset: simulation
+target: population
+n_org: 5000
+r: 2
+m: 10
+K: 10
+steps: [1, 2, 3, 4]
+estimators: [T_alt, T_s, T_s_ppd]
+alpha: 0.05

@@ -1,13 +1,14 @@
-# The positive control: synthpop-CART with proper synthesis. Pilot at R = 100.
+# The positive control: synthpop-CART with proper synthesis.
+# Final design values (S5 benchmark, 25 Sept 2026): n_org 5000, r 2, m = K = 10.
 name: synthpop_proper
 generator: synthpop
 generator_kwargs: {proper: true}
 dataset: simulation
 target: population
-n_org: 2000
+n_org: 5000
 r: 2
 m: 10
 K: 10
-steps: [1, 2]
+steps: [1, 2, 3, 4]
 estimators: [T_alt, T_s, T_s_ppd]
 alpha: 0.05
