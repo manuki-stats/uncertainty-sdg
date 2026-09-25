@@ -50,9 +50,11 @@ def check(name: str, kwargs: dict, n_org: int, r: int) -> None:
     cols_ok = list(f1.columns) == EXPECTED
     float_ok = all(pd.api.types.is_float_dtype(f1[c]) for c in EXPECTED)
     x2_ok = set(np.unique(f1["x2"])) <= {0.0, 1.0}
-    shape_ok = len(f1) == n_syn and f1.isna().sum().sum() == 0
+    n_bad = int((~np.isfinite(f1.to_numpy(dtype=float))).sum())
+    shape_ok = len(f1) == n_syn and n_bad == 0
     print(f"[1 runs]      columns {ok(cols_ok)}  floats {ok(float_ok)}  "
-          f"x2 in {{0,1}} {ok(x2_ok)}  shape/NaN {ok(shape_ok)}")
+          f"x2 in {{0,1}} {ok(x2_ok)}  shape/finite {ok(shape_ok)}"
+          + (f"  <- {n_bad} non-finite values (NaN/inf)" if n_bad else ""))
     q, u = estimands_fast(f1)
     q_real, u_real = estimands_fast(real)
     # Expected sd of ONE file's estimate around the real one under proper
@@ -78,15 +80,20 @@ def check(name: str, kwargs: dict, n_org: int, r: int) -> None:
     g2 = make_generator_by_name(name, kwargs).fit(real, train_seed=12)
     t_fit2 = time.perf_counter() - t0
     f3 = g2.generate(n_syn, gen_seed=1)
+    # The full contract: a refit with the same training seed must give the same file.
+    f1_refit = make_generator_by_name(name, kwargs).fit(real, train_seed=11).generate(n_syn, gen_seed=1)
     same = f1.equals(f1_again)
+    refit_same = f1.equals(f1_refit)
     diff_gen = not f1.equals(f2)
     diff_train = not f1.equals(f3)
-    print(f"[2 seeds]     same seeds identical {ok(same)}   new gen seed differs {ok(diff_gen)}   "
-          f"new train seed changes fit: {'yes' if diff_train else 'no'} "
+    print(f"[2 seeds]     same seeds identical {ok(same)}   refit, same seeds identical {ok(refit_same)}"
+          f"   new gen seed differs {ok(diff_gen)}")
+    print(f"              new train seed changes fit: {'yes' if diff_train else 'no'} "
           f"(expected yes for neural nets / proper synthpop, no for a deterministic fit)")
-    if not same:
-        print("              -> NOT deterministic. On GPU try torch.use_deterministic_algorithms(True);"
-              " on CPU this is a wrapper bug.")
+    if not (same and refit_same):
+        print("              -> NOT reproducible: generation" if not same else
+              "              -> NOT reproducible: the fit itself", end="")
+        print(" (on GPU: unseeded CUDA stream or non-deterministic kernels; on CPU: a wrapper bug)")
 
     # 3. dispersion
     files = [f1, f2, g.generate(n_syn, gen_seed=3)]

@@ -20,6 +20,7 @@ source "${CONDA_SH:-$HOME/mf/etc/profile.d/conda.sh}" && conda activate synth2 |
 # One thread pool per worker, sized explicitly; no network from compute jobs.
 export OMP_NUM_THREADS=$THREADS MKL_NUM_THREADS=$THREADS OPENBLAS_NUM_THREADS=$THREADS
 export TABPFN_DISABLE_TELEMETRY=1 HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_OFFLINE=1
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
 export PYTHONUNBUFFERED=1
 
 name=$(basename "$CONFIG" .yaml)

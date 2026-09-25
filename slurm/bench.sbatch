@@ -16,6 +16,7 @@ N_ORG=${N_ORG:-5000}; KWARGS=${KWARGS:-"{}"}
 cd "${REPO:-$HOME/uncertainty-sdg}" || exit 1
 source "${CONDA_SH:-$HOME/mf/etc/profile.d/conda.sh}" && conda activate synth2 || exit 1
 export TABPFN_DISABLE_TELEMETRY=1 HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_OFFLINE=1 PYTHONUNBUFFERED=1
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
 
 echo "benchmark $LABEL  job ${SLURM_JOB_ID:-local}  $(date -Is)"
 echo "node $(hostname)  cpu: $(lscpu | sed -n 's/^Model name: *//p')  allocated cpus ${SLURM_CPUS_PER_TASK:-?}"
