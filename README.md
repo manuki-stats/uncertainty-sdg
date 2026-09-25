@@ -64,6 +64,22 @@ pytest -q                        # 23 passed
 set `R_HOME` and put R's `bin\x64` on PATH (an activation script in
 `%CONDA_PREFIX%\etc\conda\activate.d\` does this), and install synthpop in that R.
 
+## Running on the LRZ cluster
+
+Each design cell runs as one SLURM array job; every array task runs several
+chunks of replications in parallel, one process per chunk.
+
+```
+slurm/submit.sh configs/<cell>.yaml 0:100 cpu --chunk 10 --workers 8 --threads 2 --time 12:00:00
+python -m src.harness.progress configs/<cell>.yaml 0:100 --chunk-size 10
+slurm/pack_results.sh            # -> ~/results_latest.tgz, to copy to the laptop
+```
+
+Profiles: `cpu` (lrz-cpu), `gpu` and `gpu-mcml` (one H100). Resubmitting a range
+only runs the missing chunks. Keep `--chunk` fixed for a cell. Do not `git pull`
+while a cell is queued or running: tasks run whatever code is checked out when
+they start (every row records it in `code_version`).
+
 ## Tuning
 
 Deep generators are tuned once, before any experiment, by an equal-budget
