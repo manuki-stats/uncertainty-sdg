@@ -16,6 +16,7 @@ Usage:
   python -m src.harness.check_generator --generator ctgan --n-org 2000 --r 2
   python -m src.harness.check_generator --generator synthpop --kwargs '{"proper": true}'
   python -m src.harness.check_generator --winner results/tuning/<run>/winner.yaml --n-org 5000
+  python -m src.harness.check_generator --winner <...>/winner.yaml --kwargs '{"enable_gpu": true}'
 """
 from __future__ import annotations
 
@@ -141,7 +142,8 @@ def main():
     if a.winner:
         import yaml
         w = yaml.safe_load(open(a.winner))
-        name, kwargs = w["generator"], w.get("generator_kwargs", {})
+        # --kwargs on top of a winner overrides single keys, e.g. enable_gpu
+        name, kwargs = w["generator"], {**w.get("generator_kwargs", {}), **json.loads(a.kwargs)}
         print(f"{a.winner}: {name} {kwargs}")
     elif a.generator:
         name, kwargs = a.generator, json.loads(a.kwargs)
