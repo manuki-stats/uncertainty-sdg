@@ -1,0 +1,40 @@
+benchmark bench_tabpfn_gpu  job 5810827  2026-09-25T16:13:08+02:00
+node mcml-hgx-h100-007  cpu: AMD EPYC 9254 24-Core Processor  allocated cpus 4
+gpu: NVIDIA H100, 580.173.02
+code 6966993  n_org 5000  generator tabpfn  kwargs {}
+
+=== bench_tabpfn_gpu  threads=4  r=1  16:13:08
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.82  2.003 1.482]   real: [0.785 2.009 1.511]
+              E1 litmus z=+0.6 OK     E2/E3 misfit z=-0.3, -0.7
+              slope of y on x1 | x2=0: real 2.01 syn 2.00   | x2=1: real 3.52 syn 3.48   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=0.999  x1=1.002  x2=1.005     mean(syn)-mean(real):  y=+0.004  x1=-0.002  x2=+0.006
+[4 timing]    n_org=5000 r=1:  first fit 59.8s, first file 9.97s  (incl. one-off start-up)   steady: fit 0.0s, file 9.50s
+              projected: Steps 1-2 at m=10, R=100:    2.6 h   one ensemble step at K=10, R=100:    2.6 h
+              projected: Steps 1-2 at m=10, R=1000:   26.4 h   one ensemble step at K=10, R=1000:   26.4 h
+[5 moments]   pMSE ratio at r=1: 0.9 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x2*y +0.9   x1:x2 +0.9   x2 +0.6   x1*x1:x2 +0.5   x1:x2*y +0.5   x1*x1 +0.1   x1 -0.1   y +0.1   x1*y +0.0   y*y +0.0
+
+=== bench_tabpfn_gpu  threads=4  r=2  16:15:16
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+/dss/dsshome1/03/ra95xov2/uncertainty-sdg/src/evaluation/estimands.py:97: RuntimeWarning: invalid value encountered in matmul
+  beta = G @ (X.T @ y)
+/dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/numpy/_core/_methods.py:191: RuntimeWarning: invalid value encountered in subtract
+  x = asanyarray(arr - arrmean)
+              E1-E3 synthetic: [inf nan nan]   real: [0.785 2.009 1.511]
+              E1 litmus z=+inf FAIL: mean not reproduced     E2/E3 misfit z=+nan, +nan  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.01   | x2=1: real 3.52 syn nan   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+/dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/pandas/core/nanops.py:1016: RuntimeWarning: invalid value encountered in subtract
+  sqr = _ensure_numeric((avg - values) ** 2)
+[3 dispersion] Var(syn)/Var(real):  y=0.982  x1=1.003  x2=0.998     mean(syn)-mean(real):  y=+inf  x1=+0.005  x2=-0.002
+[4 timing]    n_org=5000 r=2:  first fit 13.8s, first file 17.32s  (incl. one-off start-up)   steady: fit 0.0s, file 17.06s
+              projected: Steps 1-2 at m=10, R=100:    4.7 h   one ensemble step at K=10, R=100:    4.7 h
+              projected: Steps 1-2 at m=10, R=1000:   47.4 h   one ensemble step at K=10, R=1000:   47.4 h
+/dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/numpy/_core/_methods.py:191: RuntimeWarning: invalid value encountered in subtract
+  x = asanyarray(arr - arrmean)
+[5 moments]   pMSE ratio at r=1: 1.3 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x1:x2 +0.8   x1*x1:x2 -0.3   x1 +0.3   x2 -0.2   x1*x1 +0.1   y +nan   x1*y +nan   x2*y +nan   x1:x2*y +nan   y*y +nan
+
+finished 2026-09-25T16:16:58+02:00

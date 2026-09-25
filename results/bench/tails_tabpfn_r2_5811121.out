@@ -1,0 +1,31 @@
+job 5811121 tails_tabpfn_r2 2026-09-25T18:30:09+02:00  node mcml-hgx-h100-020 cpu: AMD EPYC 9254 24-Core Processor  threads 4  code ac4fcd5
+gpu: NVIDIA H100, 580.173.02
+python scripts/diag_tabpfn_tails.py --n-org 5000 --r 2 --n-files 20
+
+n_org 5000, r 2: 20 files of 10000 rows
+seed   sec                   y                  x1                  x2   y range
+   1  17.4  nonfin   1 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-20.8, 15.6]
+   2  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-12.7, 12.5]
+   3  17.2  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-13.4, 19]
+   4  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-12.2, 19.2]
+   5  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-21.9, 15.4]
+   6  17.1  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-17.5, 11.9]
+   7  16.9  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-21.1, 12.7]
+   8  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-12.3, 13.2]
+   9  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-19.9, 15.8]
+  10  17.1  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-11.2, 23.2]
+  11  16.9  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-13.3, 14.7]
+  12  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-15.4, 12.2]
+  13  17.1  nonfin   0 ext   1  nonfin   0 ext   0  nonfin   0 ext   0   [-34.8, 12]
+  14  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-13.4, 12.7]
+  15  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-12.1, 11.7]
+  16  17.1  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-14.2, 14.6]
+  17  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-11.3, 11.1]
+  18  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-25.1, 11.8]
+  19  17.1  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-14.1, 25.1]
+  20  17.0  nonfin   0 ext   0  nonfin   0 ext   0  nonfin   0 ext   0   [-15.1, 15.5]
+
+files with any non-finite or extreme value: 2/20
+affected cells: 2 of 600000 (1.00e-05 per row); low tail 1, high tail 1
+
+finished 2026-09-25T18:36:39+02:00, exit 0

@@ -1,0 +1,31 @@
+benchmark bench_synthpop_plugin  job 5810229  2026-09-25T11:30:30+02:00
+node cpu-006  cpu: Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz  allocated cpus 1
+code 6966993  n_org 5000  generator synthpop  kwargs {"proper": false}
+
+=== bench_synthpop_plugin  threads=1  r=1  11:30:31
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.778 1.982 1.521]   real: [0.785 2.009 1.511]
+              E1 litmus z=-0.1 OK     E2/E3 misfit z=-1.0, +0.2
+              slope of y on x1 | x2=0: real 2.01 syn 1.98   | x2=1: real 3.52 syn 3.50   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=0.987  x1=0.988  x2=1.001     mean(syn)-mean(real):  y=-0.029  x1=-0.009  x2=+0.001
+[4 timing]    n_org=5000 r=1:  first fit 0.0s, first file 5.99s  (incl. one-off start-up)   steady: fit 0.0s, file 0.42s
+              projected: Steps 1-2 at m=10, R=100:    0.1 h   one ensemble step at K=10, R=100:    0.1 h
+              projected: Steps 1-2 at m=10, R=1000:    1.2 h   one ensemble step at K=10, R=1000:    1.2 h
+[5 moments]   pMSE ratio at r=1: 0.8 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x1*y -0.6   y*y -0.5   y -0.5   x1 -0.5   x1*x1 -0.4   x2*y -0.2   x2 +0.1   x1:x2*y -0.1   x1*x1:x2 +0.0   x1:x2 +0.0
+
+=== bench_synthpop_plugin  threads=1  r=2  11:30:54
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.778 2.02  1.499]   real: [0.785 2.009 1.511]
+              E1 litmus z=-0.1 OK     E2/E3 misfit z=+0.5, -0.3
+              slope of y on x1 | x2=0: real 2.01 syn 2.02   | x2=1: real 3.52 syn 3.52   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=1.007  x1=1.005  x2=1.002     mean(syn)-mean(real):  y=-0.021  x1=-0.007  x2=+0.003
+[4 timing]    n_org=5000 r=2:  first fit 0.0s, first file 3.82s  (incl. one-off start-up)   steady: fit 0.0s, file 0.54s
+              projected: Steps 1-2 at m=10, R=100:    0.2 h   one ensemble step at K=10, R=100:    0.2 h
+              projected: Steps 1-2 at m=10, R=1000:    1.5 h   one ensemble step at K=10, R=1000:    1.5 h
+[5 moments]   pMSE ratio at r=1: 0.8 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              y -0.4   x1 -0.4   x2*y -0.3   x2 +0.3   x1:x2 -0.3   x1*x1 +0.2   x1*x1:x2 +0.2   x1*y +0.2   x1:x2*y +0.1   y*y +0.1
+
+finished 2026-09-25T11:31:02+02:00

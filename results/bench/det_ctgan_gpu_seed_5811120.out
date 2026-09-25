@@ -1,0 +1,22 @@
+job 5811120 det_ctgan_gpu_seed 2026-09-25T18:30:09+02:00  node mcml-hgx-h100-018 cpu: AMD EPYC 9254 24-Core Processor  threads 4  code ac4fcd5
+gpu: NVIDIA H100, 580.173.02
+python -m src.harness.check_generator --winner results/tuning/tune_ctgan__350ba10a74/winner.yaml --kwargs {"enable_gpu": true, "deterministic": false} --n-org 5000 --r 2
+
+results/tuning/tune_ctgan__350ba10a74/winner.yaml: ctgan {'enable_gpu': True, 'params': {'batch_size': 250, 'discriminator_dim': [256, 256, 256], 'discriminator_lr': 0.000212, 'discriminator_steps': 5, 'embedding_dim': 128, 'epochs': 300, 'generator_dim': [128, 128, 128], 'generator_lr': 0.000329, 'pac': 1}, 'deterministic': False}
+/dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/finite OK 
+              E1-E3 synthetic: [0.151 2.081 0.922]   real: [0.785 2.009 1.511]
+              E1 litmus z=-12.6 FAIL: mean not reproduced     E2/E3 misfit z=+3.2, -16.6  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.08   | x2=1: real 3.52 syn 3.00   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    refit, same seeds identical OK    new gen seed differs OK 
+              new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=1.063  x1=0.960  x2=1.040     mean(syn)-mean(real):  y=-0.644  x1=-0.153  x2=+0.081
+[4 timing]    n_org=5000 r=2:  first fit 377.7s, first file 0.13s  (incl. one-off start-up)   steady: fit 390.9s, file 0.07s
+              projected: Steps 1-2 at m=10, R=100:   10.9 h   one ensemble step at K=10, R=100:  108.6 h
+              projected: Steps 1-2 at m=10, R=1000:  108.8 h   one ensemble step at K=10, R=1000: 1086.0 h
+[5 moments]   pMSE ratio at r=1: 151.3 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              y -12.7   x2 +9.5   x1 -8.9   x1:x2 -6.2   x1*x1:x2 +6.0   x2*y -5.7   x1*y -2.3   x1:x2*y +1.7   x1*x1 -0.6   y*y -0.3
+              -> |z| > 4: y, x2, x1, x1:x2, x1*x1:x2, x2*y
+
+finished 2026-09-25T18:50:59+02:00, exit 0

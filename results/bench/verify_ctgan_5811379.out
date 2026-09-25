@@ -1,0 +1,22 @@
+job 5811379 verify_ctgan 2026-09-25T21:11:03+02:00  node mcml-hgx-h100-005 cpu: AMD EPYC 9254 24-Core Processor  threads 4  code be3e380
+gpu: NVIDIA H100, 580.173.02
+python -m src.harness.check_generator --config configs/ctgan.yaml
+
+configs/ctgan.yaml: ctgan {'enable_gpu': True, 'deterministic': True, 'fix_condvec': True, 'params': {'batch_size': 250, 'discriminator_dim': [256, 256, 256], 'discriminator_lr': 0.000212, 'discriminator_steps': 5, 'embedding_dim': 128, 'epochs': 300, 'generator_dim': [128, 128, 128], 'generator_lr': 0.000329, 'pac': 1}}
+/dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/finite OK 
+              E1-E3 synthetic: [0.147 2.159 0.921]   real: [0.785 2.009 1.511]
+              E1 litmus z=-12.7 FAIL: mean not reproduced     E2/E3 misfit z=+6.7, -16.6  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.16   | x2=1: real 3.52 syn 3.08   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    refit, same seeds identical OK    new gen seed differs OK 
+              new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=1.062  x1=0.961  x2=0.993     mean(syn)-mean(real):  y=-0.647  x1=-0.165  x2=-0.008
+[4 timing]    n_org=5000 r=2:  first fit 476.5s, first file 0.08s  (incl. one-off start-up)   steady: fit 411.7s, file 0.07s
+              projected: Steps 1-2 at m=10, R=100:   11.5 h   one ensemble step at K=10, R=100:  114.4 h
+              projected: Steps 1-2 at m=10, R=1000:  114.6 h   one ensemble step at K=10, R=1000: 1143.9 h
+[5 moments]   pMSE ratio at r=1: 142.0 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              y -12.8   x1 -9.7   x2*y -6.3   x1:x2 -5.8   x1*y -2.3   x1:x2*y -2.0   x1*x1:x2 +1.2   x2 -0.9   x1*x1 -0.4   y*y -0.3
+              -> |z| > 4: y, x1, x2*y, x1:x2
+
+finished 2026-09-25T21:32:30+02:00, exit 0

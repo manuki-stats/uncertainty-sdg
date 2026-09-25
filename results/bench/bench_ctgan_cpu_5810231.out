@@ -1,0 +1,66 @@
+benchmark bench_ctgan_cpu  job 5810231  2026-09-25T11:30:28+02:00
+node cpu-001  cpu: Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz  allocated cpus 8
+code 6966993  n_org 5000  generator results/tuning/tune_ctgan__350ba10a74/winner.yaml  kwargs {"enable_gpu": false}
+
+=== bench_ctgan_cpu  threads=1  r=2  11:30:28
+results/tuning/tune_ctgan__350ba10a74/winner.yaml: ctgan {'enable_gpu': False, 'params': {'batch_size': 250, 'discriminator_dim': [256, 256, 256], 'discriminator_lr': 0.000212, 'discriminator_steps': 5, 'embedding_dim': 128, 'epochs': 300, 'generator_dim': [128, 128, 128], 'generator_lr': 0.000329, 'pac': 1}}
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [1.272 2.095 0.848]   real: [0.785 2.009 1.511]
+              E1 litmus z=+9.7 FAIL: mean not reproduced     E2/E3 misfit z=+3.8, -18.7  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.09   | x2=1: real 3.52 syn 2.94   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=1.040  x1=0.994  x2=1.040     mean(syn)-mean(real):  y=+0.471  x1=+0.005  x2=+0.081
+[4 timing]    n_org=5000 r=2:  first fit 1403.2s, first file 0.14s  (incl. one-off start-up)   steady: fit 1349.7s, file 0.14s
+              projected: Steps 1-2 at m=10, R=100:   37.5 h   one ensemble step at K=10, R=100:  375.0 h
+              projected: Steps 1-2 at m=10, R=1000:  375.3 h   one ensemble step at K=10, R=1000: 3749.6 h
+[5 moments]   pMSE ratio at r=1: 186.1 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x2 +9.5   y +9.3   x2*y +7.4   x1*x1:x2 +5.6   y*y +5.2   x1*y -1.5   x1:x2*y +0.6   x1:x2 -0.3   x1 +0.3   x1*x1 -0.3
+              -> |z| > 4: x2, y, x2*y, x1*x1:x2, y*y
+
+=== bench_ctgan_cpu  threads=2  r=2  12:16:31
+results/tuning/tune_ctgan__350ba10a74/winner.yaml: ctgan {'enable_gpu': False, 'params': {'batch_size': 250, 'discriminator_dim': [256, 256, 256], 'discriminator_lr': 0.000212, 'discriminator_steps': 5, 'embedding_dim': 128, 'epochs': 300, 'generator_dim': [128, 128, 128], 'generator_lr': 0.000329, 'pac': 1}}
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.028 2.15  0.901]   real: [0.785 2.009 1.511]
+              E1 litmus z=-15.1 FAIL: mean not reproduced     E2/E3 misfit z=+6.3, -17.2  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.15   | x2=1: real 3.52 syn 3.05   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=0.969  x1=0.796  x2=1.040     mean(syn)-mean(real):  y=-0.772  x1=-0.300  x2=+0.081
+              -> dispersion off by >20% in some column; investigate before running.
+[4 timing]    n_org=5000 r=2:  first fit 1193.3s, first file 0.16s  (incl. one-off start-up)   steady: fit 1162.7s, file 0.13s
+              projected: Steps 1-2 at m=10, R=100:   32.3 h   one ensemble step at K=10, R=100:  323.0 h
+              projected: Steps 1-2 at m=10, R=1000:  323.3 h   one ensemble step at K=10, R=1000: 3230.0 h
+[5 moments]   pMSE ratio at r=1: 203.5 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x1 -18.0   y -15.4   x1:x2 -13.8   x2 +9.5   x2*y -8.5   x1*y -8.1   x1*x1 -4.8   y*y -3.7   x1*x1:x2 +3.1   x1:x2*y -2.2
+              -> |z| > 4: x1, y, x1:x2, x2, x2*y, x1*y, x1*x1
+
+=== bench_ctgan_cpu  threads=4  r=2  12:55:55
+results/tuning/tune_ctgan__350ba10a74/winner.yaml: ctgan {'enable_gpu': False, 'params': {'batch_size': 250, 'discriminator_dim': [256, 256, 256], 'discriminator_lr': 0.000212, 'discriminator_steps': 5, 'embedding_dim': 128, 'epochs': 300, 'generator_dim': [128, 128, 128], 'generator_lr': 0.000329, 'pac': 1}}
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.852 2.206 0.88 ]   real: [0.785 2.009 1.511]
+              E1 litmus z=+1.3 OK     E2/E3 misfit z=+8.8, -17.8  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.21   | x2=1: real 3.52 syn 3.09   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=1.248  x1=1.094  x2=1.040     mean(syn)-mean(real):  y=+0.063  x1=+0.033  x2=+0.081
+[4 timing]    n_org=5000 r=2:  first fit 1092.8s, first file 0.13s  (incl. one-off start-up)   steady: fit 1068.6s, file 0.13s
+              projected: Steps 1-2 at m=10, R=100:   29.7 h   one ensemble step at K=10, R=100:  296.9 h
+              projected: Steps 1-2 at m=10, R=1000:  297.2 h   one ensemble step at K=10, R=1000: 2968.8 h
+[5 moments]   pMSE ratio at r=1: 149.1 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x2 +9.5   x1*x1:x2 +9.2   y*y +8.4   x1:x2*y +5.5   x1*y +4.3   x1*x1 +3.9   x2*y +2.5   x1:x2 +2.1   x1 +1.9   y +1.2
+              -> |z| > 4: x2, x1*x1:x2, y*y, x1:x2*y, x1*y
+
+=== bench_ctgan_cpu  threads=8  r=2  13:32:02
+results/tuning/tune_ctgan__350ba10a74/winner.yaml: ctgan {'enable_gpu': False, 'params': {'batch_size': 250, 'discriminator_dim': [256, 256, 256], 'discriminator_lr': 0.000212, 'discriminator_steps': 5, 'embedding_dim': 128, 'epochs': 300, 'generator_dim': [128, 128, 128], 'generator_lr': 0.000329, 'pac': 1}}
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.039 2.148 0.996]   real: [0.785 2.009 1.511]
+              E1 litmus z=-14.8 FAIL: mean not reproduced     E2/E3 misfit z=+6.2, -14.5  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.15   | x2=1: real 3.52 syn 3.14   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=1.133  x1=0.970  x2=1.040     mean(syn)-mean(real):  y=-0.732  x1=-0.325  x2=+0.081
+[4 timing]    n_org=5000 r=2:  first fit 1047.7s, first file 0.14s  (incl. one-off start-up)   steady: fit 1046.9s, file 0.13s
+              projected: Steps 1-2 at m=10, R=100:   29.1 h   one ensemble step at K=10, R=100:  290.8 h
+              projected: Steps 1-2 at m=10, R=1000:  291.2 h   one ensemble step at K=10, R=1000: 2908.3 h
+[5 moments]   pMSE ratio at r=1: 197.7 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x1 -18.9   x1:x2 -14.8   y -14.3   x2 +9.5   x1*x1:x2 +8.1   x2*y -7.8   x1*x1 +3.2   x1:x2*y +2.5   y*y +2.0   x1*y -1.0
+              -> |z| > 4: x1, x1:x2, y, x2, x1*x1:x2, x2*y
+
+finished 2026-09-25T14:07:04+02:00

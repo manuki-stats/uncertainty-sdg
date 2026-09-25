@@ -1,0 +1,20 @@
+benchmark bench_tvae_gpu  job 5810829  2026-09-25T16:13:33+02:00
+node mcml-hgx-h100-005  cpu: AMD EPYC 9254 24-Core Processor  allocated cpus 4
+gpu: NVIDIA H100, 580.173.02
+code 6966993  n_org 5000  generator tvae  kwargs {"enable_gpu": true}
+
+=== bench_tvae_gpu  threads=4  r=2  16:13:33
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.684 2.103 1.278]   real: [0.785 2.009 1.511]
+              E1 litmus z=-2.0 OK     E2/E3 misfit z=+4.2, -6.6  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.10   | x2=1: real 3.52 syn 3.38   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=0.825  x1=0.840  x2=0.948     mean(syn)-mean(real):  y=-0.117  x1=+0.094  x2=-0.050
+[4 timing]    n_org=5000 r=2:  first fit 49.2s, first file 0.04s  (incl. one-off start-up)   steady: fit 19.5s, file 0.03s
+              projected: Steps 1-2 at m=10, R=100:    0.5 h   one ensemble step at K=10, R=100:    5.4 h
+              projected: Steps 1-2 at m=10, R=1000:    5.5 h   one ensemble step at K=10, R=1000:   54.2 h
+[5 moments]   pMSE ratio at r=1: 114.3 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x1:x2*y -9.0   x1*x1:x2 -8.4   y*y -7.6   x1*y -7.2   x1*x1 -6.8   x2 -5.9   x1 +5.6   x1:x2 +5.2   y -2.4   x2*y -0.4
+              -> |z| > 4: x1:x2*y, x1*x1:x2, y*y, x1*y, x1*x1, x2, x1, x1:x2
+
+finished 2026-09-25T16:14:50+02:00

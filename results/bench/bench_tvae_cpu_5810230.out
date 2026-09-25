@@ -1,0 +1,65 @@
+benchmark bench_tvae_cpu  job 5810230  2026-09-25T11:30:28+02:00
+node cpu-001  cpu: Intel(R) Xeon(R) Gold 6148 CPU @ 2.40GHz  allocated cpus 8
+code 6966993  n_org 5000  generator tvae  kwargs {"enable_gpu": false}
+
+=== bench_tvae_cpu  threads=1  r=2  11:30:28
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.606 2.009 1.662]   real: [0.785 2.009 1.511]
+              E1 litmus z=-3.5 FAIL: mean not reproduced     E2/E3 misfit z=+0.0, +4.3  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.01   | x2=1: real 3.52 syn 3.67   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=0.694  x1=0.696  x2=0.968     mean(syn)-mean(real):  y=-0.136  x1=+0.008  x2=-0.033
+              -> dispersion off by >20% in some column; investigate before running.
+[4 timing]    n_org=5000 r=2:  first fit 91.3s, first file 0.06s  (incl. one-off start-up)   steady: fit 48.0s, file 0.05s
+              projected: Steps 1-2 at m=10, R=100:    1.3 h   one ensemble step at K=10, R=100:   13.4 h
+              projected: Steps 1-2 at m=10, R=1000:   13.5 h   one ensemble step at K=10, R=1000:  133.5 h
+[5 moments]   pMSE ratio at r=1: 84.7 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x1*y -14.8   x1*x1 -14.1   x1*x1:x2 -13.5   y*y -13.1   x1:x2*y -12.9   x2 -3.9   x1:x2 +3.1   y -2.8   x2*y -1.9   x1 +0.5
+              -> |z| > 4: x1*y, x1*x1, x1*x1:x2, y*y, x1:x2*y
+
+=== bench_tvae_cpu  threads=2  r=2  11:33:00
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.606 2.009 1.662]   real: [0.785 2.009 1.511]
+              E1 litmus z=-3.5 FAIL: mean not reproduced     E2/E3 misfit z=+0.0, +4.3  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.01   | x2=1: real 3.52 syn 3.67   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=0.694  x1=0.696  x2=0.968     mean(syn)-mean(real):  y=-0.136  x1=+0.008  x2=-0.033
+              -> dispersion off by >20% in some column; investigate before running.
+[4 timing]    n_org=5000 r=2:  first fit 46.6s, first file 0.05s  (incl. one-off start-up)   steady: fit 42.5s, file 0.04s
+              projected: Steps 1-2 at m=10, R=100:    1.2 h   one ensemble step at K=10, R=100:   11.8 h
+              projected: Steps 1-2 at m=10, R=1000:   11.9 h   one ensemble step at K=10, R=1000:  118.2 h
+[5 moments]   pMSE ratio at r=1: 84.7 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x1*y -14.8   x1*x1 -14.1   x1*x1:x2 -13.5   y*y -13.1   x1:x2*y -12.9   x2 -3.9   x1:x2 +3.1   y -2.8   x2*y -1.9   x1 +0.5
+              -> |z| > 4: x1*y, x1*x1, x1*x1:x2, y*y, x1:x2*y
+
+=== bench_tvae_cpu  threads=4  r=2  11:34:33
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.606 2.009 1.662]   real: [0.785 2.009 1.511]
+              E1 litmus z=-3.5 FAIL: mean not reproduced     E2/E3 misfit z=+0.0, +4.3  <- relationship distorted
+              slope of y on x1 | x2=0: real 2.01 syn 2.01   | x2=1: real 3.52 syn 3.67   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=0.694  x1=0.696  x2=0.968     mean(syn)-mean(real):  y=-0.136  x1=+0.008  x2=-0.033
+              -> dispersion off by >20% in some column; investigate before running.
+[4 timing]    n_org=5000 r=2:  first fit 43.8s, first file 0.04s  (incl. one-off start-up)   steady: fit 37.1s, file 0.04s
+              projected: Steps 1-2 at m=10, R=100:    1.0 h   one ensemble step at K=10, R=100:   10.3 h
+              projected: Steps 1-2 at m=10, R=1000:   10.4 h   one ensemble step at K=10, R=1000:  103.2 h
+[5 moments]   pMSE ratio at r=1: 84.7 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x1*y -14.8   x1*x1 -14.1   x1*x1:x2 -13.5   y*y -13.1   x1:x2*y -12.9   x2 -3.9   x1:x2 +3.1   y -2.8   x2*y -1.9   x1 +0.5
+              -> |z| > 4: x1*y, x1*x1, x1*x1:x2, y*y, x1:x2*y
+
+=== bench_tvae_cpu  threads=8  r=2  11:35:58
+[1 runs]      columns OK   floats OK   x2 in {0,1} OK   shape/NaN OK 
+              E1-E3 synthetic: [0.703 2.001 1.5  ]   real: [0.785 2.009 1.511]
+              E1 litmus z=-1.6 OK     E2/E3 misfit z=-0.4, -0.3
+              slope of y on x1 | x2=0: real 2.01 syn 2.00   | x2=1: real 3.52 syn 3.50   (DGP: 2.0 and 3.5)
+[2 seeds]     same seeds identical OK    new gen seed differs OK    new train seed changes fit: yes (expected yes for neural nets / proper synthpop, no for a deterministic fit)
+[3 dispersion] Var(syn)/Var(real):  y=0.661  x1=0.683  x2=0.972     mean(syn)-mean(real):  y=-0.050  x1=+0.028  x2=-0.029
+              -> dispersion off by >20% in some column; investigate before running.
+[4 timing]    n_org=5000 r=2:  first fit 41.6s, first file 0.05s  (incl. one-off start-up)   steady: fit 41.6s, file 0.04s
+              projected: Steps 1-2 at m=10, R=100:    1.2 h   one ensemble step at K=10, R=100:   11.6 h
+              projected: Steps 1-2 at m=10, R=1000:   11.7 h   one ensemble step at K=10, R=1000:  115.6 h
+[5 moments]   pMSE ratio at r=1: 78.9 (tuning scale; correct plug-in fit about 1, proper about 2).  Moment mismatch z, worst first:
+              x1*y -15.6   x1*x1 -14.7   y*y -14.0   x1*x1:x2 -13.5   x1:x2*y -13.3   x1:x2 +3.8   x2 -3.4   x1 +1.7   y -1.1   x2*y -0.3
+              -> |z| > 4: x1*y, x1*x1, y*y, x1*x1:x2, x1:x2*y
+
+finished 2026-09-25T11:37:25+02:00

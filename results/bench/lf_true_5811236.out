@@ -1,0 +1,19 @@
+job 5811236 lf_true 2026-09-25T19:10:46+02:00  node mcml-hgx-h100-005 cpu: AMD EPYC 9254 24-Core Processor  threads 4  code 020eca1
+gpu: NVIDIA H100, 580.173.02
+python scripts/diag_ctgan_logfreq.py --log-frequency true --n-fits 5 --gpu
+
+ctgan {'enable_gpu': True, 'params': {'batch_size': 250, 'discriminator_dim': [256, 256, 256], 'discriminator_lr': 0.000212, 'discriminator_steps': 5, 'embedding_dim': 128, 'epochs': 300, 'generator_dim': [128, 128, 128], 'generator_lr': 0.000329, 'pac': 1, 'log_frequency': True}}
+real: x2 share 0.400   E1-E3 [0.785 2.009 1.511]
+seed  fit s  x2 share   E1 z   E2 z   E3 z    pMSE
+/dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+ 101    469     0.491   +4.5   +8.2  -17.7   144.5
+ 102    382     0.491   -1.0   +7.0  -12.2   142.0
+ 103    405     0.491   +6.2   +8.4  -16.0   150.4
+ 104    417     0.491   -7.9   +1.5  -11.2   176.7
+ 105    392     0.491  +14.6   -0.9  -13.8   315.6
+mean          0.491   +3.3   +4.8  -14.2   185.8
+sd            0.000    8.4    4.3    2.7    73.8
+mean |E1 z| 6.8
+
+finished 2026-09-25T19:45:18+02:00, exit 0
