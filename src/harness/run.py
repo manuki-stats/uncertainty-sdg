@@ -31,7 +31,7 @@ from src.config import ExperimentConfig
 from src.data.simulation import SimulationDGP
 from src.evaluation.estimands import estimands_fast
 from src.generators.oracle import ParametricOracle
-from src.results_io import chunk_done, chunk_path, write_chunk
+from src.results_io import chunk_done, chunk_path, files_path, write_chunk
 from src.seeds import derive_seed
 
 ESTIMAND_NAMES = ("E1", "E2", "E3")
@@ -93,9 +93,20 @@ def _rows(base: dict, pooled_or_interval, targets: np.ndarray, j: int) -> list[d
     return out
 
 
-def _pool_step(step, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_rej):
+def _file_rows(rep, step, Q, U, n_rej) -> list[dict]:
+    """One row per file and estimand: the per-file estimate q and its variance
+    estimate u, the inputs every combining rule starts from."""
+    return [{"rep": rep, "step": step, "file": i, "estimand": ESTIMAND_NAMES[j],
+             "q": float(Q[i, j]), "u": float(U[i, j]), "n_rejected": int(n_rej[i])}
+            for i in range(Q.shape[0]) for j in range(Q.shape[1])]
+
+
+def _pool_step(step, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_rej,
+               file_rows=None):
     Q, U = zip(*(analyse(f) for f in files))
     Q, U = np.array(Q), np.array(U)
+    if file_rows is not None:
+        file_rows += _file_rows(base["rep"], step, Q, U, n_rej)
     base = {**base, "step": step, "runtime_fit": t_fit, "runtime_gen": t_gen,
             "n_rejected": int(sum(n_rej)), **_dispersion(files, real)}
     rows = []
@@ -106,7 +117,9 @@ def _pool_step(step, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_r
     return rows
 
 
-def run_replication(cfg: ExperimentConfig, rep: int) -> list[dict]:
+def run_replication(cfg: ExperimentConfig, rep: int, file_rows: list | None = None) -> list[dict]:
+    """Result rows for one replication. If `file_rows` is a list, the per-file
+    estimates (q, u) of every step are appended to it as well."""
     dgp, analyse, truth = make_dataset(cfg)
     real = dgp.sample(cfg.n_org, np.random.default_rng(derive_seed(cfg.seed0, rep, 0, "data")))
     q_org, _ = analyse(real)
@@ -130,12 +143,15 @@ def run_replication(cfg: ExperimentConfig, rep: int) -> list[dict]:
 
         if 1 in cfg.steps:
             q, u = analyse(files[0])
+            if file_rows is not None:
+                file_rows += _file_rows(rep, 1, np.atleast_2d(q), np.atleast_2d(u), n_rej[:1])
             b1 = {**base, "step": 1, "runtime_fit": t_fit, "runtime_gen": t_gen / n_files,
                   "n_rejected": n_rej[0], **_dispersion(files[:1], real)}
             for j in range(len(ESTIMAND_NAMES)):
                 rows += _rows(b1, naive(q[j], u[j], cfg.alpha), targets, j)
         if 2 in cfg.steps:
-            rows += _pool_step(2, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_rej)
+            rows += _pool_step(2, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_rej,
+                               file_rows)
 
     # Steps 3 and 4: K fits, one file each
     for step in (3, 4):
@@ -158,7 +174,8 @@ def run_replication(cfg: ExperimentConfig, rep: int) -> list[dict]:
                 cfg.n_syn, gen_seed=derive_seed(cfg.seed0, rep, step, "gen", k)))
             n_rej.append(_rejected(gen))
             t_gen += time.perf_counter() - t0
-        rows += _pool_step(step, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_rej)
+        rows += _pool_step(step, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_rej,
+                           file_rows)
 
     return rows
 
@@ -206,14 +223,19 @@ def run(cfg: ExperimentConfig, start: int, stop: int, chunk_size: int) -> None:
             print(f"  {path.name}  exists, skipped", flush=True)
             continue
         t0 = time.perf_counter()
-        rows = []
+        rows, file_rows = [], []
         for rep in range(c0, c1):
-            rows += run_replication(cfg, rep)
+            rows += run_replication(cfg, rep, file_rows)
         prov = provenance()
         for row in rows:
             row["config_hash"] = h
             row["code_version"] = version
             row.update(prov)
+        for row in file_rows:
+            row["config_hash"] = h
+        # Per-file values first, the chunk last: an existing chunk is what marks
+        # the range as done, so it always has its per-file companion.
+        write_chunk(file_rows, files_path(cfg.name, h, c0, c1))
         write_chunk(rows, path)
         print(f"  {path.name}  {time.perf_counter() - t0:6.1f}s", flush=True)
 
