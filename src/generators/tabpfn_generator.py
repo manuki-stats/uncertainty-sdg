@@ -40,12 +40,25 @@ Rebuilding also draws from torch's RNG, so the cache setting changes which
 file a seed produces. The wrapper therefore sets it itself rather than leaving
 it to the environment.
 
+Non-finite intermediate values: the sampler can return +-inf (see generate()).
+In the last column (y) such a value reaches the output and its row is redrawn.
+In an earlier column it becomes an input to the next column's prediction and
+TabPFN raises TabPFNValidationError ("Input contains infinity ..."), so no
+table comes back at all. That generation call is then repeated with a seed
+derived from the call's own seed (spawn key (0, j), disjoint from the row
+redraws' (attempt,)), at most MAX_REDRAWS times. A call that never fails takes
+exactly the path it took before this redraw existed, so files that never hit
+the error are bit-identical. The n rows of a failed call count as rejected rows
+in `last_n_rejected` (so a file's n_rejected // n_syn is its number of failed
+calls) and `last_n_redrawn_calls` counts the calls; each one is logged.
+
 Size limits: TabPFN refuses CPU inference on more than 1,000 context rows by
 default (too slow); `ignore_pretraining_limits=True` lifts that and the
 10,000-row pretraining limit. Use a GPU for n_org in the thousands.
 """
 from __future__ import annotations
 
+import logging
 import os
 
 import numpy as np
@@ -60,6 +73,7 @@ MODEL_CACHE_SIZE = "2"
 _WARMED_UP = False                                # per process, see the docstring
 MAX_REDRAWS = 20
 DISCRETE = ("x2",)
+log = logging.getLogger(__name__)
 
 
 class TabPFNGenerator(Generator):
@@ -79,6 +93,7 @@ class TabPFNGenerator(Generator):
         self.warmup = warmup
         self._model = None
         self.last_n_rejected = 0
+        self.last_n_redrawn_calls = 0
 
     def fit(self, data: pd.DataFrame, *, train_seed: int):
         global _WARMED_UP
@@ -118,6 +133,27 @@ class TabPFNGenerator(Generator):
         arr = out.detach().cpu().numpy() if hasattr(out, "detach") else np.asarray(out)
         return pd.DataFrame(arr, columns=self.order)[self._columns].astype(float)
 
+    def _draw_safe(self, n: int, seed: int) -> pd.DataFrame:
+        """_draw, repeated with derived seeds when TabPFN rejects a non-finite
+        value generated in an earlier column (see the module docstring). Any
+        other exception propagates unchanged."""
+        s = int(seed)
+        for j in range(1, MAX_REDRAWS + 2):
+            try:
+                return self._draw(n, s)
+            except Exception as e:
+                if not _is_nonfinite_input_error(e):
+                    raise
+                self.last_n_rejected += int(n)
+                self.last_n_redrawn_calls += 1
+                log.warning("tabpfn: non-finite intermediate value in a %d-row call "
+                            "(seed %d, attempt %d); redrawing the call", int(n), s, j)
+                if j > MAX_REDRAWS:
+                    break
+                s = _derived_seed(int(seed), (0, j))
+        raise RuntimeError(f"generation call of {int(n)} rows still failing after "
+                           f"{MAX_REDRAWS} redraws (seed {int(seed)})")
+
     def generate(self, n: int, *, gen_seed: int) -> pd.DataFrame:
         """n rows, all finite. TabPFN's sampler inverts the predictive CDF bucket
         by bucket; when a tail bucket's float32 probability is ~0 it can return
@@ -125,12 +161,16 @@ class TabPFNGenerator(Generator):
         and redrawn with seeds derived from gen_seed, so a file is still
         reproducible from its seed; `last_n_rejected` counts the rejected rows
         and the harness records it. Finite extremes are kept: they are draws
-        from TabPFN's predictive distribution, not arithmetic failures."""
+        from TabPFN's predictive distribution, not arithmetic failures.
+        Generation calls that fail on a non-finite intermediate value are
+        redrawn by _draw_safe and counted in the same total."""
         if self._model is None:
             raise RuntimeError("generate() before fit()")
-        df = self._draw(n, gen_seed)
+        self.last_n_rejected = 0
+        self.last_n_redrawn_calls = 0
+        df = self._draw_safe(n, gen_seed)
         bad = ~np.isfinite(df.to_numpy()).all(axis=1)
-        self.last_n_rejected = int(bad.sum())
+        self.last_n_rejected += int(bad.sum())
         attempt = 0
         while bad.any():
             attempt += 1
@@ -139,12 +179,27 @@ class TabPFNGenerator(Generator):
                                    f"{MAX_REDRAWS} redraws")
             k = int(bad.sum())
             seed = np.random.SeedSequence(entropy=int(gen_seed), spawn_key=(attempt,))
-            extra = self._draw(max(k, 2), int(seed.generate_state(1, np.uint32)[0])).iloc[:k]
+            extra = self._draw_safe(max(k, 2), int(seed.generate_state(1, np.uint32)[0])).iloc[:k]
             df.loc[bad, :] = extra.to_numpy()
             new_bad = ~np.isfinite(extra.to_numpy()).all(axis=1)
             self.last_n_rejected += int(new_bad.sum())
             bad = ~np.isfinite(df.to_numpy()).all(axis=1)
         return df
+
+
+def _derived_seed(seed: int, key: tuple) -> int:
+    ss = np.random.SeedSequence(entropy=int(seed), spawn_key=key)
+    return int(ss.generate_state(1, np.uint32)[0])
+
+
+def _is_nonfinite_input_error(e: BaseException) -> bool:
+    """TabPFN's input validation rejecting inf/NaN produced by its own sampler."""
+    try:
+        from tabpfn.errors import TabPFNValidationError
+    except ImportError:                            # older tabpfn: sklearn's ValueError
+        TabPFNValidationError = ValueError
+    msg = str(e)
+    return isinstance(e, TabPFNValidationError) and ("infinity" in msg or "NaN" in msg)
 
 
 def _silence_progress_bars() -> None:
