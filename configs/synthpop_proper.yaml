@@ -2,7 +2,9 @@
 # Final design values (S5 benchmark, 25 Sept 2026): n_org 5000, r 2, m = K = 10.
 name: synthpop_proper
 generator: synthpop
-generator_kwargs: {proper: true}
+generator_kwargs: 
+  proper: true
+  params: {cart.xval: 0}
 dataset: simulation
 target: population
 n_org: 5000
