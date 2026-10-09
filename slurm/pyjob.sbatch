@@ -9,6 +9,7 @@ cd "${REPO:-$HOME/uncertainty-sdg}" || exit 1
 source "${CONDA_SH:-$HOME/mf/etc/profile.d/conda.sh}" && conda activate synth2 || exit 1
 T=${THREADS:-${SLURM_CPUS_PER_TASK:-1}}
 export OMP_NUM_THREADS=$T MKL_NUM_THREADS=$T OPENBLAS_NUM_THREADS=$T
+export LOKY_MAX_CPU_COUNT=$T  # caps joblib pools (ctgan's DataTransformer uses n_jobs=-1)
 export TABPFN_DISABLE_TELEMETRY=1 HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_OFFLINE=1 PYTHONUNBUFFERED=1
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 

@@ -18,7 +18,11 @@ cd "${REPO:-$HOME/uncertainty-sdg}" || exit 1
 source "${CONDA_SH:-$HOME/mf/etc/profile.d/conda.sh}" && conda activate synth2 || exit 1
 
 # One thread pool per worker, sized explicitly; no network from compute jobs.
+# LOKY_MAX_CPU_COUNT caps joblib process pools: ctgan's DataTransformer calls
+# Parallel(n_jobs=-1) on >= 500 rows, which otherwise spawns a pool the size of
+# the whole allocation inside every worker.
 export OMP_NUM_THREADS=$THREADS MKL_NUM_THREADS=$THREADS OPENBLAS_NUM_THREADS=$THREADS
+export LOKY_MAX_CPU_COUNT=$THREADS
 export TABPFN_DISABLE_TELEMETRY=1 HF_HUB_DISABLE_TELEMETRY=1 HF_HUB_OFFLINE=1
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 export PYTHONUNBUFFERED=1
