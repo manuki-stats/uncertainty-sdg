@@ -25,12 +25,24 @@ Both models treat every column as continuous unless told otherwise, so the
 wrapper declares the discrete columns and casts them back to float 0/1 on the
 way out, which is what the estimand code expects.
 
+No process pools: ctgan's DataTransformer transforms columns with
+`Parallel(n_jobs=-1)` whenever the data have 500 rows or more, i.e. a loky
+process pool inside every worker. On the H100 nodes those pool processes
+intermittently die at start-up (a named semaphore from /dev/shm is gone by the
+time the child opens it: FileNotFoundError in SemLock._rebuild), which kills the
+whole fit. The wrapper therefore runs fit() and sample() under joblib's
+sequential backend: the same column transforms, in-process, one after another.
+This is the path joblib already takes when the job scripts cap
+LOKY_MAX_CPU_COUNT at 1, and on TVAE it was verified bit-identical to the
+pooled path (rep 50), so results do not depend on it.
+
 Hyperparameters default to the package defaults (epochs=300, batch_size=500);
 the tuning search overrides them through `params`.
 """
 from __future__ import annotations
 
 import os
+from contextlib import contextmanager
 
 import numpy as np
 import pandas as pd
@@ -73,7 +85,8 @@ class _CtganBase(Generator):
         self._model = self._cls(enable_gpu=self.enable_gpu, **self.params)
         self._model.set_random_state(int(train_seed))
         self._seed_gpu(train_seed)
-        self._model.fit(data, discrete_columns=self.discrete_columns)
+        with _no_process_pools():
+            self._model.fit(data, discrete_columns=self.discrete_columns)
         if self.fix_condvec:
             sampler = getattr(self._model, "_data_sampler", None)
             if sampler is None:
@@ -86,11 +99,20 @@ class _CtganBase(Generator):
             raise RuntimeError("generate() before fit()")
         self._model.set_random_state(int(gen_seed))
         self._seed_gpu(gen_seed)
-        out = self._model.sample(int(n))
+        with _no_process_pools():
+            out = self._model.sample(int(n))
         out = out[self._columns].copy()
         for c in self.discrete_columns:
             out[c] = pd.to_numeric(out[c], errors="coerce").astype(float)
         return out.astype(float)
+
+
+@contextmanager
+def _no_process_pools():
+    """Run any joblib Parallel inside the block in-process (see the docstring)."""
+    from joblib import parallel_config
+    with parallel_config(backend="sequential"):
+        yield
 
 
 def use_empirical_condvec(sampler) -> None:
