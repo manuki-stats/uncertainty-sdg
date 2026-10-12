@@ -26,6 +26,74 @@ import glob
 import numpy as np
 import pandas as pd
 
+def install_sampler_probe(log: list) -> None:
+    """Wrap tabpfn_extensions' sample_from_model_prediction_ so every regressor
+    call is recorded: the criterion's borders, the float32 cumulative-sum
+    shortfall 1 - S of each row's bucket probabilities (computed as icdf() does,
+    softmax of logits / t), p_last, and every sampled value outside the borders.
+    The original call runs unchanged and nothing here draws random numbers, so
+    the generated files are identical (the reconstruction check confirms it).
+
+    Why: FullSupportBarDistribution.sample() inverts the bucket CDF with icdf(),
+    which interpolates inside [borders[0], borders[-1]]. If u lands in the gap
+    (S, 1) left by float32 rounding, the index is clamped to the last bucket and
+    the value becomes borders[-2] + width_last * rest / p_last, which can lie far
+    beyond borders[-1] (and is +inf when p_last == 0)."""
+    import inspect as _inspect
+    import torch
+    import tabpfn_extensions.unsupervised.unsupervised as U
+    cls = U.TabPFNUnsupervisedModel
+    orig = cls.sample_from_model_prediction_
+    sig = _inspect.signature(orig)
+
+    def probe(self, *args, **kwargs):
+        pred, sampled = orig(self, *args, **kwargs)
+        if isinstance(pred, dict) and "criterion" in pred:
+            a = sig.bind(self, *args, **kwargs).arguments
+            t = float(a.get("t", 1.0))
+            b = pred["criterion"].borders.detach().cpu().double()
+            lg = pred["logits"]
+            lg = (lg.clone().detach() if torch.is_tensor(lg) else torch.as_tensor(lg)).cpu()
+            probs = (lg / t).softmax(-1)
+            S = probs.cumsum(-1)[..., -1].double()
+            p_last = probs[..., -1].double()
+            v = torch.as_tensor(sampled).detach().cpu().double()
+            out = (v > b[-1]) | (v < b[0])
+            short = 1.0 - S
+            bound = b[-2] + (b[-1] - b[-2]) * short.clamp(min=0) / p_last
+            log.append(dict(
+                col=int(a["column_idx"]), n=int(v.numel()), n_buckets=int(b.numel() - 1),
+                borders=[float(x) for x in (b[0], b[1], b[-2], b[-1])],
+                short_max=float(short.max()), short_q99=float(short.quantile(.99)),
+                n_short_pos=int((short > 0).sum()), n_plast0=int((p_last == 0).sum()),
+                p_last_med=float(p_last.median()), n_out=int(out.sum()),
+                out=[(float(x), float(sh), float(pl), float(bd)) for x, sh, pl, bd in
+                     zip(v[out][:5], short[out][:5], p_last[out][:5], bound[out][:5])]))
+        return pred, sampled
+
+    cls.sample_from_model_prediction_ = probe
+
+
+def summarise_probe(log: list, label: str) -> None:
+    """One line per column of the calls made for one file; detail for any value
+    outside the criterion's borders."""
+    names = {0: "x2", 1: "x1", 2: "y"}                 # generation order (x2, x1, y)
+    if not log:
+        print(f"  [{label}] no regressor calls recorded")
+        return
+    df = pd.DataFrame(log)
+    for col, g in df.groupby("col"):
+        bo = g.borders.iloc[0]
+        print(f"  [{label}] {names.get(col, col)}: {len(g)} calls, {g.n_buckets.iloc[0]} buckets, "
+              f"borders {bo[0]:.3g}, {bo[1]:.3g} ... {bo[2]:.3g}, {bo[3]:.3g}; "
+              f"max(1-S) = {g.short_max.max():.2e}, rows with 1-S > 0: {g.n_short_pos.sum()}, "
+              f"p_last = 0: {g.n_plast0.sum()}, median p_last {g.p_last_med.median():.2e}, "
+              f"values outside borders: {g.n_out.sum()}")
+        for o in sum(g.out.tolist(), []):
+            print(f"      outside: value {o[0]:.4g}, 1-S {o[1]:.2e}, p_last {o[2]:.2e}, "
+                  f"extrapolation bound {o[3]:.4g}")
+
+
 TRUE = {"b0": 1.0, "b1": 2.0, "b2": -0.5, "b3": 1.5}    # y = 1 + 2x1 - .5x2 + 1.5x1x2 + e
 
 
@@ -92,23 +160,33 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
     ap.add_argument("--reps", required=True, help="comma-separated replications")
+    ap.add_argument("--sampler-stats", action="store_true",
+                    help="record the bar-distribution sampler for every file")
     ap.add_argument("--show", default="", help="file indices to describe (default: "
                     "the most extreme and the most typical file by E2)")
     args = ap.parse_args()
 
     cfg = H.ExperimentConfig.from_yaml(args.config)
+    log = [] if args.sampler_stats else None
+    if log is not None:
+        install_sampler_probe(log)
     for rep in (int(x) for x in args.reps.split(",")):
-        inspect_rep(H, cfg, rep, args.show)
+        inspect_rep(H, cfg, rep, args.show, log)
 
 
-def inspect_rep(H, cfg, rep: int, show_arg: str) -> None:
+def inspect_rep(H, cfg, rep: int, show_arg: str, log: list | None = None) -> None:
     dgp, analyse, truth = H.make_dataset(cfg)
     print(f"\n##### replication {rep}", flush=True)
     real = dgp.sample(cfg.n_org, np.random.default_rng(H.derive_seed(cfg.seed0, rep, 0, "data")))
     gen = H.make_generator(cfg).fit(real, train_seed=H.derive_seed(cfg.seed0, rep, 2, "train"))
+    if log is not None:
+        log.clear()                                   # drop the warm-up's calls
     files, Q, U = [], [], []
     for i in range(cfg.m):
         f = gen.generate(cfg.n_syn, gen_seed=H.derive_seed(cfg.seed0, rep, 2, "gen", i))
+        if log is not None:
+            summarise_probe(log, f"file {i}")
+            log.clear()
         files.append(f)
         q, u = analyse(f)
         Q.append(q); U.append(u)
