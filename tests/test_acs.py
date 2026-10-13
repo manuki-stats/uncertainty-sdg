@@ -71,3 +71,64 @@ def test_tuning_sample_and_features():
     other = ACSPopulation().sample(5000, np.random.default_rng(11))
     r = pmse_score(t, other, feats)            # two independent real samples: near the null
     assert 0.3 < r.ratio < 3.0
+
+
+# ---------------------------------------------------------------- harness wiring
+
+class _Resampler:
+    """Plug-in empirical 'generator' for wiring tests: resamples the training rows."""
+    def fit(self, data, *, train_seed):
+        self._d = data
+        return self
+
+    def generate(self, n, *, gen_seed):
+        return self._d.sample(n=n, replace=True,
+                              random_state=gen_seed % 2**32).reset_index(drop=True)
+
+
+def test_sample_target_after_the_fact_equals_direct_run(tmp_path, monkeypatch):
+    import src.harness.run as run_mod
+    import src.results_io as rio
+    from src.config import ExperimentConfig
+    from src.evaluation.summarise import sample_target_rows
+
+    monkeypatch.setattr(rio, "RAW_ROOT", tmp_path)
+    monkeypatch.setattr(run_mod, "make_generator", lambda cfg: _Resampler())
+    kw = dict(generator="resampler", dataset="acs", n_org=1000, r=2, m=3, K=3,
+              estimators=("T_alt", "T_s", "T_s_ppd"))
+    pop_cfg = ExperimentConfig(name="wiring_pop", target="population", **kw)
+    smp_cfg = ExperimentConfig(name="wiring_smp", target="sample", **kw)
+    run_mod.run(pop_cfg, 0, 3, 2)
+    run_mod.run(smp_cfg, 0, 3, 2)
+
+    keys = ["rep", "step", "estimand", "estimator"]
+    after = sample_target_rows(pop_cfg).sort_values(keys).reset_index(drop=True)
+    direct = rio.read_cell(smp_cfg.name, smp_cfg.hash()).sort_values(keys).reset_index(drop=True)
+    assert len(after) == len(direct) > 0
+    pd.testing.assert_frame_equal(after[keys], direct[keys])
+    for c in ["target_value", "estimate", "variance", "lo", "hi"]:
+        np.testing.assert_allclose(after[c], direct[c], rtol=1e-9, atol=1e-12)  # CSV round trip
+    assert (after["covered"].to_numpy() == direct["covered"].to_numpy()).all()
+
+
+def test_synthpop_input_frame_unchanged_for_simulation():
+    """The generalised wrapper must hand R exactly what the simulation always did."""
+    from src.data.simulation import SimulationDGP
+    from src.generators.synthpop_generator import SynthpopGenerator
+
+    sim = SimulationDGP().sample(300, np.random.default_rng(0))
+    new = SynthpopGenerator(proper=False).fit(sim, train_seed=1)._data
+    old = sim[["x2", "x1", "y"]].astype(float).reset_index(drop=True)
+    old["x2"] = pd.Categorical(old["x2"].astype(int).astype(str), categories=["0", "1"])
+    pd.testing.assert_frame_equal(new, old)
+
+
+def test_synthpop_input_frame_acs(pop):
+    from src.generators.synthpop_generator import SynthpopGenerator
+
+    d = pop.sample(2000, np.random.default_rng(4))
+    g = SynthpopGenerator(proper=False, order=ORDER, discrete_columns=DISCRETE).fit(d, train_seed=1)
+    assert list(g._data.columns) == list(ORDER)
+    for c in DISCRETE:
+        assert isinstance(g._data[c].dtype, pd.CategoricalDtype)
+        assert list(g._data[c].cat.categories) == [str(i) for i in range(len(LEVELS[c]))]

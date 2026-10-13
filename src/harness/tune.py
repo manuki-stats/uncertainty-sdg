@@ -230,8 +230,9 @@ def run_tuning(cfg: TuneConfig, factory=_default_factory, root: Path = TUNE_ROOT
         if cfg.formula != FEATURE_FORMULA:
             raise ValueError(f"acs tuning needs formula {FEATURE_FORMULA!r}, got {cfg.formula!r}")
         data = load_tuning_sample()
-        if len(data) != cfg.n_tune:
+        if cfg.n_tune > len(data):
             raise ValueError(f"n_tune = {cfg.n_tune} but the tuning sample has {len(data)} rows")
+        data = data.iloc[:cfg.n_tune].reset_index(drop=True)   # smoke runs only: a random subset
         features = DerivedMomentFeatures(cfg.formula, derive).fit(data)
     else:
         raise ValueError(f"unknown dataset {cfg.dataset!r}")

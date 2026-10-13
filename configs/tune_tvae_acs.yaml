@@ -1,0 +1,24 @@
+# Tuning protocol on the real data: identical budget, space, seeds and selection rule
+# to the simulation's (configs/tune_tvae.yaml), scored by pMSE on M2's monomials over the reserved
+# ACS tuning sample (extracts/acs2024_us/d_tune.csv). No oracle reference exists here.
+name: tune_tvae_acs
+generator: tvae
+generator_kwargs:
+  enable_gpu: false
+  discrete_columns: [sex, nativity, educ, marital, class_worker]
+dataset: acs
+formula: "log_wage ~ a * female + a2 + e_lt_hs + e_some_college + e_bachelor + e_graduate"
+n_tune: 5000
+n_random: 29
+n_files: 3
+n_top: 3
+n_seeds: 3
+seed0: 20260923
+space:
+  epochs: {choice: [300, 600, 900]}
+  batch_size: {choice: [250, 500, 1000]}
+  embedding_dim: {choice: [32, 64, 128, 256]}
+  compress_dims: {layers: {width: [128, 256], depth: [2, 3]}}
+  decompress_dims: {layers: {width: [128, 256], depth: [2, 3]}}
+  l2scale: {loguniform: [1.0e-6, 1.0e-3]}
+  loss_factor: {loguniform: [0.5, 8.0]}

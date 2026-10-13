@@ -40,7 +40,7 @@ from src.config import ExperimentConfig
 from src.data.simulation import SimulationDGP
 from src.evaluation.estimands import estimands_fast
 from src.generators.oracle import ParametricOracle
-from src.results_io import chunk_done, chunk_path, files_path, write_chunk
+from src.results_io import chunk_done, chunk_path, files_path, orig_path, write_chunk
 from src.seeds import derive_seed
 
 ESTIMAND_NAMES = ("E1", "E2", "E3")
@@ -230,13 +230,6 @@ def code_version() -> str:
         return "unknown"
 
 
-def orig_path(files_csv):
-    """orig_*.csv beside files_*.csv: the confidential-sample estimates of a chunk."""
-    if not files_csv.name.startswith("files_"):
-        raise RuntimeError(f"unexpected per-file name {files_csv.name!r}")
-    return files_csv.with_name("orig_" + files_csv.name[len("files_"):])
-
-
 def run(cfg: ExperimentConfig, start: int, stop: int, chunk_size: int) -> None:
     h = cfg.hash()
     version = code_version()
@@ -260,9 +253,8 @@ def run(cfg: ExperimentConfig, start: int, stop: int, chunk_size: int) -> None:
             row["config_hash"] = h
         # Per-file values first, the chunk last: an existing chunk is what marks
         # the range as done, so it always has its per-file companions.
-        fpath = files_path(cfg.name, h, c0, c1)
-        write_chunk(orig_rows, orig_path(fpath))
-        write_chunk(file_rows, fpath)
+        write_chunk(orig_rows, orig_path(cfg.name, h, c0, c1))
+        write_chunk(file_rows, files_path(cfg.name, h, c0, c1))
         write_chunk(rows, path)
         print(f"  {path.name}  {time.perf_counter() - t0:6.1f}s", flush=True)
 

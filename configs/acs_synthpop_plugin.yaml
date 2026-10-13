@@ -1,0 +1,21 @@
+# ACS 2024 pseudo-population (src/data/acs.py): each replication draws its own D_org of
+# 5000 without replacement from N = 717,219 (f = 0.70%); truth = the population's M2
+# coefficients. The q_org target comes from the same runs:
+#   python -m src.evaluation.summarise --config <this file> --target sample
+# synthpop-CART, plug-in. Same settings as configs/synthpop_plugin.yaml.
+name: acs_synthpop_plugin
+generator: synthpop
+generator_kwargs:
+  proper: false
+  params: {cart.xval: 0}
+  order: [sex, age, nativity, educ, marital, class_worker, hours, log_wage]
+  discrete_columns: [sex, nativity, educ, marital, class_worker]
+dataset: acs
+target: population
+n_org: 5000
+r: 2
+m: 10
+K: 10
+steps: [1, 2, 3, 4]
+estimators: [T_alt, T_s, T_s_ppd]
+alpha: 0.05

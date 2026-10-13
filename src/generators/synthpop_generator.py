@@ -14,8 +14,11 @@ harness's seed bookkeeping still holds: Step 2 varies the generation seed only,
 Step 3 both. Step 4's harness-level bootstrap plus proper=TRUE bootstraps
 twice; use proper=FALSE in Step 4 if you want exactly one.
 
-Columns are passed in the order x2, x1, y so that y is synthesised last,
-conditional on both predictors (synthpop visits columns in order).
+Columns are passed in `order` (default x2, x1, y, so that y is synthesised
+last, conditional on both predictors; synthpop visits columns in order) and
+returned in the caller's column order. `discrete_columns` (coded 0..K-1) go to
+R as factors. The defaults reproduce the simulation exactly; the real data set
+both from src/data/acs.py.
 """
 from __future__ import annotations
 
@@ -24,26 +27,34 @@ import pandas as pd
 
 from .base import Generator
 
-ORDER = ["x2", "x1", "y"]
+ORDER = ("x2", "x1", "y")
+DISCRETE = ("x2",)
 
 
 class SynthpopGenerator(Generator):
     name = "synthpop"
 
     def __init__(self, proper: bool = True, method: str = "cart",
-                 params: dict | None = None):
+                 params: dict | None = None, order=ORDER, discrete_columns=DISCRETE):
         self.proper = proper
         self.method = method
         self.params = dict(params or {})   # extra syn() args, e.g. {"cart.minbucket": 5}
+        self.order = list(order)
+        self.discrete_columns = list(discrete_columns)
         self._data = None
 
     def fit(self, data: pd.DataFrame, *, train_seed: int):
-        self._data = data[ORDER].astype(float).reset_index(drop=True)
-        # Pass x2 to R as a factor so CART treats it as categorical and synthpop
-        # prints no conversion note. rpy2 converts a Categorical to an R factor
-        # only when its categories are STRINGS, hence the astype(str).
-        self._data["x2"] = pd.Categorical(self._data["x2"].astype(int).astype(str),
-                                          categories=["0", "1"])
+        self._columns = list(data.columns)
+        if set(self.order) != set(self._columns):
+            raise ValueError(f"order {self.order} does not match columns {self._columns}")
+        self._data = data[self.order].astype(float).reset_index(drop=True)
+        # Pass discrete columns to R as factors so CART treats them as categorical
+        # and synthpop prints no conversion note. rpy2 converts a Categorical to an
+        # R factor only when its categories are STRINGS, hence the astype(str).
+        for c in self.discrete_columns:
+            codes = self._data[c].astype(int)
+            levels = [str(v) for v in sorted(codes.unique())]
+            self._data[c] = pd.Categorical(codes.astype(str), categories=levels)
         self._train_seed = int(train_seed)
         return self
 
@@ -72,8 +83,8 @@ class SynthpopGenerator(Generator):
             out = ro.conversion.get_conversion().rpy2py(res.rx2("syn"))
 
         out = pd.DataFrame(out)
-        for c in ORDER:   # factors come back as categoricals of strings
+        for c in self.order:   # factors come back as categoricals of strings
             if isinstance(out[c].dtype, pd.CategoricalDtype) or out[c].dtype == object:
                 out[c] = pd.to_numeric(out[c].astype(str))
-        out = out[ORDER].astype(float).reset_index(drop=True)
-        return out[["y", "x1", "x2"]]
+        out = out[self.order].astype(float).reset_index(drop=True)
+        return out[self._columns]
