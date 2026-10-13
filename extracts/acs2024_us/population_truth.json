@@ -1,0 +1,11 @@
+{
+  "spec": "M2: log wage ~ a + female + a:female + a^2 + educ (ref hs), a = (age-45)/10",
+  "Q": {
+    "E1": 11.038891986691219,
+    "E2": 0.09069754134104921,
+    "E3": -0.036465230879417596
+  },
+  "population_size": 717219,
+  "n_org": 5000,
+  "sampling_fraction": 0.006971371366346959
+}

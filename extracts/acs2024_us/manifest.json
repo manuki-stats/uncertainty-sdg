@@ -1,0 +1,218 @@
+{
+  "source_url": "https://www2.census.gov/programs-surveys/acs/data/pums/2024/1-Year/csv_pus.zip",
+  "source_files": [
+    "psam_pusa.csv",
+    "psam_pusb.csv"
+  ],
+  "zip_sha256": "afdc6d90c6e2f0bab365ed32d95ba4c4d8ac651162f46ac7861295b2dc469894",
+  "population_csv_sha256": "f429a027065c8453c9a4d5333ed000f5a4d91db96691e5ea5036d4fb1500d1fa",
+  "seed": 20261013,
+  "n_tune": 5000,
+  "n_org": 5000,
+  "population_size": 717219,
+  "sampling_fraction": 0.006971371366346959,
+  "adjinc_applied": false,
+  "top_code": "per-state maximum WAGP removed",
+  "filters": [
+    {
+      "step": "all persons",
+      "remaining": 3422888
+    },
+    {
+      "step": "household population (no GQ)",
+      "remaining": 3239682
+    },
+    {
+      "step": "age 25-64",
+      "remaining": 1619278
+    },
+    {
+      "step": "civilian employed (ESR 1,2)",
+      "remaining": 1252910
+    },
+    {
+      "step": "wage/salary worker (COW 1-5)",
+      "remaining": 1120468
+    },
+    {
+      "step": "WAGP > 0",
+      "remaining": 1120468
+    },
+    {
+      "step": "full year (WKWN >= 50)",
+      "remaining": 1003936
+    },
+    {
+      "step": "no allocation on the 8 variables",
+      "remaining": 733759
+    },
+    {
+      "step": "below the state's top code",
+      "remaining": 722219
+    }
+  ],
+  "educ_bins_schl": {
+    "lt_hs": [
+      1,
+      15
+    ],
+    "hs": [
+      16,
+      17
+    ],
+    "some_college": [
+      18,
+      20
+    ],
+    "bachelor": [
+      21,
+      21
+    ],
+    "graduate": [
+      22,
+      24
+    ]
+  },
+  "labels": {
+    "sex": {
+      "1": "male",
+      "2": "female"
+    },
+    "marital": {
+      "1": "married",
+      "2": "widowed",
+      "3": "divorced",
+      "4": "separated",
+      "5": "never_married"
+    },
+    "class_worker": {
+      "1": "private_profit",
+      "2": "private_nonprofit",
+      "3": "local_gov",
+      "4": "state_gov",
+      "5": "federal_gov"
+    },
+    "nativity": {
+      "1": "native",
+      "2": "foreign_born"
+    }
+  },
+  "columns": [
+    "age",
+    "hours",
+    "wage",
+    "sex",
+    "marital",
+    "educ",
+    "class_worker",
+    "nativity"
+  ],
+  "summary": {
+    "population": {
+      "n": 717219,
+      "age": {
+        "mean": 44.24,
+        "sd": 11.3,
+        "share_mode": 0.028
+      },
+      "hours": {
+        "mean": 41.28,
+        "sd": 9.26,
+        "share_mode": 0.573
+      },
+      "wage": {
+        "mean": 79944.01,
+        "sd": 58928.62,
+        "share_mode": 0.037
+      },
+      "log_wage": {
+        "mean": 11.0389,
+        "sd": 0.752,
+        "skew": -0.723,
+        "excess_kurt": 2.238
+      },
+      "sex": {
+        "male": 0.5092,
+        "female": 0.4908
+      },
+      "marital": {
+        "married": 0.6296,
+        "never_married": 0.2402,
+        "divorced": 0.1036,
+        "separated": 0.014,
+        "widowed": 0.0127
+      },
+      "educ": {
+        "bachelor": 0.2927,
+        "some_college": 0.2754,
+        "graduate": 0.2014,
+        "hs": 0.188,
+        "lt_hs": 0.0425
+      },
+      "class_worker": {
+        "private_profit": 0.6996,
+        "private_nonprofit": 0.1114,
+        "local_gov": 0.097,
+        "state_gov": 0.0539,
+        "federal_gov": 0.0381
+      },
+      "nativity": {
+        "native": 0.8446,
+        "foreign_born": 0.1554
+      }
+    },
+    "d_tune": {
+      "n": 5000,
+      "age": {
+        "mean": 44.25,
+        "sd": 11.32,
+        "share_mode": 0.031
+      },
+      "hours": {
+        "mean": 40.91,
+        "sd": 9.35,
+        "share_mode": 0.586
+      },
+      "wage": {
+        "mean": 80905.15,
+        "sd": 58655.55,
+        "share_mode": 0.035
+      },
+      "log_wage": {
+        "mean": 11.0504,
+        "sd": 0.7579,
+        "skew": -0.775,
+        "excess_kurt": 2.274
+      },
+      "sex": {
+        "male": 0.5066,
+        "female": 0.4934
+      },
+      "marital": {
+        "married": 0.641,
+        "never_married": 0.2366,
+        "divorced": 0.095,
+        "separated": 0.0148,
+        "widowed": 0.0126
+      },
+      "educ": {
+        "bachelor": 0.3106,
+        "some_college": 0.2582,
+        "graduate": 0.1998,
+        "hs": 0.193,
+        "lt_hs": 0.0384
+      },
+      "class_worker": {
+        "private_profit": 0.6934,
+        "private_nonprofit": 0.1136,
+        "local_gov": 0.0944,
+        "state_gov": 0.06,
+        "federal_gov": 0.0386
+      },
+      "nativity": {
+        "native": 0.838,
+        "foreign_born": 0.162
+      }
+    }
+  }
+}
