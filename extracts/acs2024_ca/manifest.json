@@ -1,0 +1,246 @@
+{
+  "source_url": "https://www2.census.gov/programs-surveys/acs/data/pums/2024/1-Year/csv_pca.zip",
+  "source_file": "psam_p06.csv",
+  "zip_sha256": "fa3e473e13b09bb6d9f915c7f5c58b8405a8e48d22c43f30d43055a8a6c52882",
+  "seed": 20261013,
+  "n_org": 5000,
+  "n_tune": 5000,
+  "pool_size": 79846,
+  "top_code": 678000,
+  "adjinc_applied": false,
+  "filters": [
+    {
+      "step": "household population (no GQ)",
+      "remaining": 374372
+    },
+    {
+      "step": "age 25-64",
+      "remaining": 195824
+    },
+    {
+      "step": "civilian employed (ESR 1,2)",
+      "remaining": 149762
+    },
+    {
+      "step": "wage/salary worker (COW 1-5)",
+      "remaining": 132165
+    },
+    {
+      "step": "WAGP > 0",
+      "remaining": 132165
+    },
+    {
+      "step": "full year (WKWN >= 50)",
+      "remaining": 117191
+    },
+    {
+      "step": "no allocation on the 8 variables",
+      "remaining": 81405
+    },
+    {
+      "step": "below top code (WAGP < 678,000)",
+      "remaining": 79846
+    }
+  ],
+  "educ_bins_schl": {
+    "lt_hs": [
+      1,
+      15
+    ],
+    "hs": [
+      16,
+      17
+    ],
+    "some_college": [
+      18,
+      20
+    ],
+    "bachelor": [
+      21,
+      21
+    ],
+    "graduate": [
+      22,
+      24
+    ]
+  },
+  "labels": {
+    "sex": {
+      "1": "male",
+      "2": "female"
+    },
+    "marital": {
+      "1": "married",
+      "2": "widowed",
+      "3": "divorced",
+      "4": "separated",
+      "5": "never_married"
+    },
+    "class_worker": {
+      "1": "private_profit",
+      "2": "private_nonprofit",
+      "3": "local_gov",
+      "4": "state_gov",
+      "5": "federal_gov"
+    },
+    "nativity": {
+      "1": "native",
+      "2": "foreign_born"
+    }
+  },
+  "summary": {
+    "pool": {
+      "n": 79846,
+      "age": {
+        "mean": 43.77,
+        "sd": 11.11,
+        "share_mode": 0.031
+      },
+      "hours": {
+        "mean": 40.59,
+        "sd": 9.61,
+        "share_mode": 0.621
+      },
+      "wage": {
+        "mean": 95009.04,
+        "sd": 73540.96,
+        "share_mode": 0.037
+      },
+      "log_wage": {
+        "mean": 11.1648,
+        "skew": -0.708
+      },
+      "sex": {
+        "male": 0.5158,
+        "female": 0.4842
+      },
+      "marital": {
+        "married": 0.5893,
+        "never_married": 0.3004,
+        "divorced": 0.0839,
+        "separated": 0.0159,
+        "widowed": 0.0104
+      },
+      "educ": {
+        "bachelor": 0.311,
+        "some_college": 0.2477,
+        "graduate": 0.2188,
+        "hs": 0.1452,
+        "lt_hs": 0.0772
+      },
+      "class_worker": {
+        "private_profit": 0.7032,
+        "local_gov": 0.1108,
+        "private_nonprofit": 0.1008,
+        "state_gov": 0.0562,
+        "federal_gov": 0.029
+      },
+      "nativity": {
+        "native": 0.6579,
+        "foreign_born": 0.3421
+      }
+    },
+    "d_org": {
+      "n": 5000,
+      "age": {
+        "mean": 43.74,
+        "sd": 11.14,
+        "share_mode": 0.031
+      },
+      "hours": {
+        "mean": 40.6,
+        "sd": 9.53,
+        "share_mode": 0.63
+      },
+      "wage": {
+        "mean": 93322.92,
+        "sd": 71284.71,
+        "share_mode": 0.042
+      },
+      "log_wage": {
+        "mean": 11.1535,
+        "skew": -0.757
+      },
+      "sex": {
+        "male": 0.5094,
+        "female": 0.4906
+      },
+      "marital": {
+        "married": 0.5834,
+        "never_married": 0.3054,
+        "divorced": 0.0848,
+        "separated": 0.016,
+        "widowed": 0.0104
+      },
+      "educ": {
+        "bachelor": 0.3148,
+        "some_college": 0.2452,
+        "graduate": 0.2136,
+        "hs": 0.1444,
+        "lt_hs": 0.082
+      },
+      "class_worker": {
+        "private_profit": 0.7004,
+        "local_gov": 0.118,
+        "private_nonprofit": 0.0974,
+        "state_gov": 0.054,
+        "federal_gov": 0.0302
+      },
+      "nativity": {
+        "native": 0.6558,
+        "foreign_born": 0.3442
+      }
+    },
+    "d_tune": {
+      "n": 5000,
+      "age": {
+        "mean": 43.63,
+        "sd": 11.07,
+        "share_mode": 0.035
+      },
+      "hours": {
+        "mean": 40.44,
+        "sd": 9.58,
+        "share_mode": 0.619
+      },
+      "wage": {
+        "mean": 93969.66,
+        "sd": 72361.44,
+        "share_mode": 0.034
+      },
+      "log_wage": {
+        "mean": 11.1526,
+        "skew": -0.697
+      },
+      "sex": {
+        "male": 0.513,
+        "female": 0.487
+      },
+      "marital": {
+        "married": 0.5906,
+        "never_married": 0.2966,
+        "divorced": 0.087,
+        "separated": 0.0158,
+        "widowed": 0.01
+      },
+      "educ": {
+        "bachelor": 0.305,
+        "some_college": 0.2536,
+        "graduate": 0.2278,
+        "hs": 0.136,
+        "lt_hs": 0.0776
+      },
+      "class_worker": {
+        "private_profit": 0.7056,
+        "local_gov": 0.1072,
+        "private_nonprofit": 0.1038,
+        "state_gov": 0.0542,
+        "federal_gov": 0.0292
+      },
+      "nativity": {
+        "native": 0.654,
+        "foreign_born": 0.346
+      }
+    }
+  }
+}
