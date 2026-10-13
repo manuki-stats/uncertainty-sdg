@@ -1,7 +1,8 @@
 """Smoke test of every generator on the real-data coding: one small replication each.
 
-Usage (repo root, env synth2):  python scripts/smoke_acs.py [name ...]
+Usage (repo root, env synth2):  python scripts/smoke_acs.py [--file-only] [name ...]
     names: synthpop_plugin synthpop_proper tabpfn tvae ctgan   (default: all five)
+    --file-only: skip the replication (TabPFN on a laptop CPU needs ~45 min for it)
 
 For each generator: a reduced cell (n_org 500, m = K = 2; CTGAN and TVAE at 2 epochs on
 CPU, from the tuning configs since their cell configs wait for the tuning winners), then
@@ -59,6 +60,8 @@ def check_file(cfg: ExperimentConfig, pop: ACSPopulation) -> None:
         bad = set(syn[c].unique()) - {float(i) for i in range(len(LEVELS[c]))}
         assert not bad, f"{c}: codes outside 0..{len(LEVELS[c]) - 1}: {sorted(bad)[:5]}"
     print(f"  file check OK  (fit {t_fit:.1f}s, 1000 rows {t_gen:.1f}s)")
+    if getattr(gen, "inferred_categorical", None):
+        print(f"    library-inferred categoricals overridden: {gen.inferred_categorical}")
     print(f"    mean log_wage {syn.log_wage.mean():.3f} (real {real.log_wage.mean():.3f}); "
           f"female {np.mean(syn.sex == 1):.3f} (real {np.mean(real.sex == 1):.3f}); "
           f"age {syn.age.min():.0f}-{syn.age.max():.0f}; hours {syn.hours.min():.0f}-{syn.hours.max():.0f}")
@@ -78,7 +81,7 @@ def check_replication(cfg: ExperimentConfig) -> None:
     print("    " + view.round(4).to_string().replace("\n", "\n    "))
 
 
-def main(keys: list[str]) -> int:
+def main(keys: list[str], file_only: bool = False) -> int:
     pop = ACSPopulation()
     failed = []
     for key in keys:
@@ -86,7 +89,8 @@ def main(keys: list[str]) -> int:
         print(f"\n=== {key}: {cfg.generator} {cfg.generator_kwargs}")
         try:
             check_file(cfg, pop)
-            check_replication(cfg)
+            if not file_only:
+                check_replication(cfg)
         except Exception:
             traceback.print_exc()
             failed.append(key)
@@ -96,4 +100,7 @@ def main(keys: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:] or list(CELLS) + list(TUNED)))
+    args = sys.argv[1:]
+    only = "--file-only" in args
+    names = [a for a in args if a != "--file-only"]
+    sys.exit(main(names or list(CELLS) + list(TUNED), file_only=only))

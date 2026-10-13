@@ -132,3 +132,26 @@ def test_synthpop_input_frame_acs(pop):
     for c in DISCRETE:
         assert isinstance(g._data[c].dtype, pd.CategoricalDtype)
         assert list(g._data[c].cat.categories) == [str(i) for i in range(len(LEVELS[c]))]
+
+
+def test_tabpfn_categoricals_are_exactly_the_declared_columns(pop):
+    """tabpfn_extensions infers extra categoricals (<= 40 distinct values); the wrapper
+    must undo that, or age comes back as class indices 0-39."""
+    pytest.importorskip("tabpfn_extensions")
+    from src.generators.tabpfn_generator import TabPFNGenerator
+
+    d = pop.sample(2000, np.random.default_rng(5))
+    g = TabPFNGenerator(order=ORDER, discrete_columns=DISCRETE, warmup=False, device="cpu")
+    g.fit(d, train_seed=1)
+    assert sorted(g._model.categorical_features) == sorted(ORDER.index(c) for c in DISCRETE)
+    assert "age" in g.inferred_categorical          # the case the reset exists for
+
+
+def test_tabpfn_simulation_categoricals_unchanged():
+    pytest.importorskip("tabpfn_extensions")
+    from src.data.simulation import SimulationDGP
+    from src.generators.tabpfn_generator import TabPFNGenerator
+
+    sim = SimulationDGP().sample(2000, np.random.default_rng(0))
+    g = TabPFNGenerator(warmup=False, device="cpu").fit(sim, train_seed=1)
+    assert g._model.categorical_features == [0] and g.inferred_categorical == []
