@@ -24,7 +24,11 @@ Bergstra & Bengio's (2012) argument, 29 independent draws put at least one in
 the best 10% of the space with probability 1 - 0.9^29 = 0.95.
 
 Tuning runs on its own sample, drawn with its own seed0, so it is independent
-of every experiment replication. It happens once, at n_org, before any
+of every experiment replication. On the real data that sample is the ACS
+tuning sample, reserved from the pool before the population was formed
+(extracts/acs2024_us/d_tune.csv); the propensity regressors are M2's monomials
+(src/data/acs.py, FEATURE_FORMULA), and there is no correctly specified oracle
+to score as a reference. It happens once, at n_org, before any
 experiment: the best epochs and batch size depend on n.
 
 The run also reports three diagnostics, so the procedure states its own limits:
@@ -56,7 +60,7 @@ import pandas as pd
 import yaml
 
 from src.data.simulation import FORMULA, SimulationDGP
-from src.evaluation.pmse import MomentFeatures, pmse_score
+from src.evaluation.pmse import DerivedMomentFeatures, MomentFeatures, pmse_score
 from src.seeds import derive_seed
 
 TUNE_ROOT = Path("results/tuning")
@@ -217,12 +221,20 @@ def run_tuning(cfg: TuneConfig, factory=_default_factory, root: Path = TUNE_ROOT
     out = root / f"{cfg.name}__{cfg.hash()}"
     out.mkdir(parents=True, exist_ok=True)
     (out / "config.yaml").write_text(yaml.safe_dump(asdict(cfg), sort_keys=False))
-    if cfg.dataset != "simulation":
-        raise ValueError("only the simulation dataset is wired up so far")
-
-    data = SimulationDGP().sample(
-        cfg.n_tune, np.random.default_rng(derive_seed(cfg.seed0, 0, 0, "tune_data")))
-    features = MomentFeatures(cfg.formula).fit(data)
+    if cfg.dataset == "simulation":
+        data = SimulationDGP().sample(
+            cfg.n_tune, np.random.default_rng(derive_seed(cfg.seed0, 0, 0, "tune_data")))
+        features = MomentFeatures(cfg.formula).fit(data)
+    elif cfg.dataset == "acs":
+        from src.data.acs import FEATURE_FORMULA, derive, load_tuning_sample
+        if cfg.formula != FEATURE_FORMULA:
+            raise ValueError(f"acs tuning needs formula {FEATURE_FORMULA!r}, got {cfg.formula!r}")
+        data = load_tuning_sample()
+        if len(data) != cfg.n_tune:
+            raise ValueError(f"n_tune = {cfg.n_tune} but the tuning sample has {len(data)} rows")
+        features = DerivedMomentFeatures(cfg.formula, derive).fit(data)
+    else:
+        raise ValueError(f"unknown dataset {cfg.dataset!r}")
 
     rng = np.random.default_rng(derive_seed(cfg.seed0, 0, 0, "tune_config"))
     configs = [{}] + [sample_params(cfg.space, rng) for _ in range(cfg.n_random)]
@@ -258,9 +270,9 @@ def run_tuning(cfg: TuneConfig, factory=_default_factory, root: Path = TUNE_ROOT
             recs.append(rec)
         s2[t] = recs
 
-    # Reference: the correct plug-in oracle under the stage-2 protocol
+    # Reference: the correct plug-in oracle under the stage-2 protocol (simulation only)
     ref = []
-    for k in range(cfg.n_seeds):
+    for k in (range(cfg.n_seeds) if cfg.dataset == "simulation" else []):
         rec = _run_or_load(_fit_path(out, "reference", 0, k), lambda: evaluate_fit(
             cfg, data, features, "oracle", {"mode": "plugin"}, 3, 0, k, _default_factory))
         ref.append(rec)
@@ -302,7 +314,7 @@ def _summarise(cfg, out, configs, s1, s2, ref) -> dict:
             f"written. See the fit_*.json files in {out}")
     win, best = select_winner(table)
     dflt = next(r for r in table if r["default"])
-    ref_mean, ref_se = _stats(ref)
+    ref_mean, ref_se = _stats(ref) if ref else (float("nan"), float("nan"))
     margin = dflt["stage2_mean"] - win["stage2_mean"]
     margin_se = float(np.hypot(win["stage2_se"], dflt["stage2_se"]))
     summary = {
@@ -338,8 +350,11 @@ def _print_summary(s: dict, out: Path) -> None:
         tag = "default" if r["default"] else f"t{r['trial']:02d}"
         print(f"  {tag:8s} {r['stage2_mean']:8.2f} ± {r['stage2_se']:.2f}   "
               f"(stage 1: {r['stage1']:.2f}, fit {r['fit_s']:.0f}s)  {r['params']}")
-    print(f"  reference: plug-in oracle {s['reference_plugin_oracle']:.2f} "
-          f"± {s['reference_se']:.2f}")
+    if np.isfinite(s["reference_plugin_oracle"]):
+        print(f"  reference: plug-in oracle {s['reference_plugin_oracle']:.2f} "
+              f"± {s['reference_se']:.2f}")
+    else:
+        print("  reference: none (no correctly specified oracle on real data)")
     bt = "default" if s["best_by_mean_trial"] == 0 else f"t{s['best_by_mean_trial']:02d}"
     wt = "default" if s["winner_is_default"] else f"t{s['winner_trial']:02d}"
     print(f"\nBest by mean: {bt} ({s['best_by_mean_score']:.2f} ± {s['best_by_mean_se']:.2f}, "

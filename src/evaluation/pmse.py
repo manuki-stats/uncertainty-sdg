@@ -109,6 +109,24 @@ def _product_name(a: str, b: str) -> str:
     return f"{a}*{b}"
 
 
+
+class DerivedMomentFeatures(MomentFeatures):
+    """MomentFeatures on columns derived from the data. On the real data the
+    analysis model's regressors (scaled age, a female indicator, education
+    dummies) are functions of the released columns, so both files are passed
+    through the same `derive` before the monomials are built."""
+
+    def __init__(self, formula: str, derive, tol: float = 1e-10):
+        super().__init__(formula, tol)
+        self.derive = derive
+
+    def fit(self, data: pd.DataFrame) -> "DerivedMomentFeatures":
+        super().fit(self.derive(data))
+        return self
+
+    def transform(self, data: pd.DataFrame) -> np.ndarray:
+        return super().transform(self.derive(data))
+
 @dataclass(frozen=True)
 class PmseResult:
     pmse: float

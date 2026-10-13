@@ -10,6 +10,15 @@ One replication draws a confidential sample, then runs each requested step:
 Steps 1 and 2 share one fit, and Step 1 analyses the first of Step 2's files.
 Every step of a replication sees the same confidential sample.
 
+Datasets: "simulation" (the DGP, analytic truth) and "acs" (the ACS
+pseudo-population; each replication draws its own D_org without replacement,
+truth = the population's M2 coefficients; see src/data/acs.py).
+
+Besides the result chunk and the per-file table, every chunk writes orig_*.csv:
+the estimates (q, u) on the confidential sample itself, per replication and
+estimand. With the per-file table that is everything the q_org target needs,
+so it can be evaluated after the fact on runs made with target "population".
+
 Usage:
   python -m src.harness.run --config configs/oracle_proper.yaml --reps 0:1000
   python -m src.harness.run --config ... --reps 0:1000 --chunk-size 100
@@ -62,6 +71,10 @@ def make_dataset(cfg: ExperimentConfig):
     if cfg.dataset == "simulation":
         dgp = SimulationDGP()
         return dgp, estimands_fast, dgp.truth()
+    if cfg.dataset == "acs":
+        from src.data.acs import ACSPopulation, estimands_acs
+        pop = ACSPopulation()                       # cached: loaded once per process
+        return pop, estimands_acs, pop.truth()
     raise ValueError(f"unknown dataset {cfg.dataset!r}")
 
 
@@ -117,12 +130,17 @@ def _pool_step(step, files, real, analyse, targets, cfg, base, t_fit, t_gen, n_r
     return rows
 
 
-def run_replication(cfg: ExperimentConfig, rep: int, file_rows: list | None = None) -> list[dict]:
+def run_replication(cfg: ExperimentConfig, rep: int, file_rows: list | None = None,
+                    orig_rows: list | None = None) -> list[dict]:
     """Result rows for one replication. If `file_rows` is a list, the per-file
-    estimates (q, u) of every step are appended to it as well."""
+    estimates (q, u) of every step are appended to it as well; if `orig_rows`
+    is a list, the estimates on the confidential sample itself."""
     dgp, analyse, truth = make_dataset(cfg)
     real = dgp.sample(cfg.n_org, np.random.default_rng(derive_seed(cfg.seed0, rep, 0, "data")))
-    q_org, _ = analyse(real)
+    q_org, u_org = analyse(real)
+    if orig_rows is not None:
+        orig_rows += [{"rep": rep, "estimand": ESTIMAND_NAMES[j], "q": float(q_org[j]),
+                       "u": float(u_org[j])} for j in range(len(ESTIMAND_NAMES))]
     targets = (np.array([truth[e] for e in ESTIMAND_NAMES])
                if cfg.target == "population" else q_org)
     base = {"rep": rep}
@@ -212,6 +230,13 @@ def code_version() -> str:
         return "unknown"
 
 
+def orig_path(files_csv):
+    """orig_*.csv beside files_*.csv: the confidential-sample estimates of a chunk."""
+    if not files_csv.name.startswith("files_"):
+        raise RuntimeError(f"unexpected per-file name {files_csv.name!r}")
+    return files_csv.with_name("orig_" + files_csv.name[len("files_"):])
+
+
 def run(cfg: ExperimentConfig, start: int, stop: int, chunk_size: int) -> None:
     h = cfg.hash()
     version = code_version()
@@ -223,19 +248,21 @@ def run(cfg: ExperimentConfig, start: int, stop: int, chunk_size: int) -> None:
             print(f"  {path.name}  exists, skipped", flush=True)
             continue
         t0 = time.perf_counter()
-        rows, file_rows = [], []
+        rows, file_rows, orig_rows = [], [], []
         for rep in range(c0, c1):
-            rows += run_replication(cfg, rep, file_rows)
+            rows += run_replication(cfg, rep, file_rows, orig_rows)
         prov = provenance()
         for row in rows:
             row["config_hash"] = h
             row["code_version"] = version
             row.update(prov)
-        for row in file_rows:
+        for row in file_rows + orig_rows:
             row["config_hash"] = h
         # Per-file values first, the chunk last: an existing chunk is what marks
-        # the range as done, so it always has its per-file companion.
-        write_chunk(file_rows, files_path(cfg.name, h, c0, c1))
+        # the range as done, so it always has its per-file companions.
+        fpath = files_path(cfg.name, h, c0, c1)
+        write_chunk(orig_rows, orig_path(fpath))
+        write_chunk(file_rows, fpath)
         write_chunk(rows, path)
         print(f"  {path.name}  {time.perf_counter() - t0:6.1f}s", flush=True)
 

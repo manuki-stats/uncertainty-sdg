@@ -1,0 +1,73 @@
+"""The real-data path: coding, the M2 fast path, sampling, tuning features."""
+import json
+
+import numpy as np
+import pandas as pd
+import pytest
+import statsmodels.formula.api as smf
+
+from src.data.acs import (DISCRETE, EXTRACT, FEATURE_FORMULA, LEVELS, ORDER, ACSPopulation,
+                          derive, estimands_acs, load_tuning_sample)
+from src.evaluation.pmse import DerivedMomentFeatures, pmse_score
+
+
+@pytest.fixture(scope="module")
+def pop():
+    return ACSPopulation()
+
+
+def test_coded_frame(pop):
+    d = pop.data
+    assert tuple(d.columns) == ORDER
+    assert all(d.dtypes == float)
+    for c in DISCRETE:
+        assert set(d[c].unique()) == set(float(i) for i in range(len(LEVELS[c])))
+    assert np.all(np.isfinite(d.to_numpy()))
+
+
+def test_truth_matches_build_script(pop):
+    stored = json.loads((EXTRACT / "population_truth.json").read_text())["Q"]
+    for k, v in pop.truth().items():
+        assert v == pytest.approx(stored[k], abs=1e-9)
+
+
+def test_fast_path_matches_statsmodels(pop):
+    d = pop.sample(5000, np.random.default_rng(1))
+    q, u = estimands_acs(d)
+    fit = smf.ols(FEATURE_FORMULA, data=derive(d)).fit()
+    y = d["log_wage"].to_numpy()
+    np.testing.assert_allclose(q, [y.mean(), fit.params["a"], fit.params["a:female"]], rtol=1e-9)
+    np.testing.assert_allclose(u, [y.var(ddof=1) / y.size, fit.bse["a"] ** 2,
+                                   fit.bse["a:female"] ** 2], rtol=1e-9)
+
+
+def test_unproduced_level_is_dropped_like_patsy(pop):
+    d = pop.sample(5000, np.random.default_rng(2))
+    d = d[d["educ"] != LEVELS["educ"].index("lt_hs")].reset_index(drop=True)
+    q, u = estimands_acs(d)
+    fit = smf.ols(FEATURE_FORMULA.replace("e_lt_hs + ", ""), data=derive(d)).fit()
+    np.testing.assert_allclose(q[1:], [fit.params["a"], fit.params["a:female"]], rtol=1e-9)
+    np.testing.assert_allclose(u[1:], [fit.bse["a"] ** 2, fit.bse["a:female"] ** 2], rtol=1e-9)
+
+
+def test_degenerate_file_gives_nan_not_crash(pop):
+    d = pop.sample(500, np.random.default_rng(3)).assign(sex=0.0)     # no women
+    q, u = estimands_acs(d)
+    assert np.isfinite(q[0]) and np.isnan(q[1:]).all() and np.isnan(u[1:]).all()
+
+
+def test_sampling_reproducible(pop):
+    a = pop.sample(5000, np.random.default_rng(7))
+    b = pop.sample(5000, np.random.default_rng(7))
+    pd.testing.assert_frame_equal(a, b)
+    assert len(a) == 5000 and tuple(a.columns) == ORDER
+
+
+def test_tuning_sample_and_features():
+    t = load_tuning_sample()
+    assert len(t) == 5000 and tuple(t.columns) == ORDER
+    feats = DerivedMomentFeatures(FEATURE_FORMULA, derive).fit(t)
+    assert 20 <= feats.k <= 60
+    other = ACSPopulation().sample(5000, np.random.default_rng(11))
+    r = pmse_score(t, other, feats)            # two independent real samples: near the null
+    assert 0.3 < r.ratio < 3.0
