@@ -153,8 +153,17 @@ def _logistic_probs(F: np.ndarray, s: np.ndarray, ridge: float = 1e-8) -> np.nda
     c = s.mean()
     beta0 = np.zeros(Z.shape[1])
     beta0[0] = np.log(c / (1 - c))
+    # Tight tolerances (15 Oct 2026). With the earlier {"maxiter": 1000, "gtol": 1e-8}
+    # L-BFGS-B stopped on its default relative-decrease test (ftol ~ 2e-9) short of
+    # the optimum, and pMSE magnified that slack: round-off-sized changes in the
+    # input moved the ratio by up to ~0.5%, so the same fit scored differently in
+    # different processes (seen on Windows, where BLAS round-off varies between
+    # processes). Converged, the ratio is reproducible to ~1e-6 at about twice the
+    # optimiser time (~1 s per 10,000-row file). Scores from before the change
+    # differ from converged ones by the same ~0.5%, far inside the seed-to-seed
+    # spread the tuning protocol compares (tests/test_tune_workers.py).
     res = minimize(loss, beta0, jac=True, method="L-BFGS-B",
-                   options={"maxiter": 1000, "gtol": 1e-8})
+                   options={"maxiter": 5000, "ftol": 1e-15, "gtol": 1e-10})
     eta = Z @ res.x
     return 0.5 * (1.0 + np.tanh(0.5 * eta))
 

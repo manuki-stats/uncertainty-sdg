@@ -41,9 +41,21 @@ The run also reports three diagnostics, so the procedure states its own limits:
 Every fit is written to its own JSON file as soon as it finishes, so a killed
 run resumes where it stopped.
 
+Parallel workers (slurm/tune.sbatch). `--worker 1` and `--worker 2` run one
+stage as one of several processes sharing a directory: each process claims a
+fit by creating fit_*.claim atomically, computes it, and moves on, so the fits
+spread over the workers by load. A claim belongs to the Slurm job that made it;
+a claim left by an earlier, killed job is taken over. A stage-2 worker exits if
+stage 1 is incomplete. The final plain run loads everything, computes any fit
+still missing (a worker that died mid-fit), selects the winner and writes
+winner.yaml; with --no-retry-failed it keeps failed fits as failed rather than
+refitting them in the same job. Each fit's seeds depend only on (seed0, stage,
+trial, seed index), so the split across workers does not change any fit.
+
 Usage:
   python -m src.harness.tune --config configs/tune_tvae.yaml
   python -m src.harness.tune --config configs/tune_tvae.yaml --smoke
+  python -m src.harness.tune --config configs/tune_tvae.yaml --worker 1   # see above
 """
 from __future__ import annotations
 
@@ -51,6 +63,7 @@ import argparse
 import hashlib
 import json
 import os
+import tempfile
 import time
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
@@ -162,11 +175,26 @@ def _fit_path(out: Path, stage: str, trial: int, seed_idx: int) -> Path:
     return out / f"fit_{stage}_t{trial:02d}_s{seed_idx}.json"
 
 
-def _write_json(obj: dict, path: Path) -> None:
+def _atomic_write_text(path: Path, text: str) -> None:
+    """Write via a uniquely named temporary file and an atomic rename: parallel
+    workers share the output directory. Windows refuses a rename onto a file that
+    another process is renaming at the same moment, so that case is retried."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(obj, indent=1))
-    os.replace(tmp, path)
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=path.name + ".", suffix=".tmp")
+    with os.fdopen(fd, "w") as f:
+        f.write(text)
+    for attempt in range(50):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            time.sleep(0.02 * (attempt + 1))
+    os.remove(tmp)
+    raise PermissionError(f"could not replace {path}")
+
+
+def _write_json(obj: dict, path: Path) -> None:
+    _atomic_write_text(path, json.dumps(obj, indent=1))
 
 
 def evaluate_fit(cfg: TuneConfig, data: pd.DataFrame, features: MomentFeatures,
@@ -196,16 +224,39 @@ def evaluate_fit(cfg: TuneConfig, data: pd.DataFrame, features: MomentFeatures,
     return rec
 
 
-def _run_or_load(path: Path, fn) -> dict:
+def _run_or_load(path: Path, fn, retry_failed: bool = True) -> dict:
     """Load a finished fit from disk, or run it. Failed fits are retried on the
-    next run rather than reloaded, so fixing the cause needs no manual cleanup."""
+    next run rather than reloaded, so fixing the cause needs no manual cleanup
+    (unless retry_failed is False: the parallel job's final pass)."""
     if path.exists():
         rec = json.loads(path.read_text())
-        if rec.get("error") is None:
+        if rec.get("error") is None or not retry_failed:
             return rec
     rec = fn()
     _write_json(rec, path)
     return rec
+
+
+def _claim(path: Path) -> bool:
+    """Claim the fit at `path` for this process (worker mode). The claim file
+    holds "<slurm job>:<pid>"; a claim from another job is stale and taken over."""
+    claim = path.with_suffix(".claim")
+    job = os.environ.get("SLURM_JOB_ID", "local")
+    token = f"{job}:{os.getpid()}"
+    try:
+        fd = os.open(claim, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        try:
+            owner = claim.read_text().split(":")[0]
+        except OSError:
+            return False
+        if owner in ("", job):                # being written, or a live worker of this job
+            return False
+        _atomic_write_text(claim, token)
+        return claim.read_text() == token     # two takers: the last writer wins
+    with os.fdopen(fd, "w") as f:
+        f.write(token)
+    return True
 
 
 def _log(rec: dict, label: str) -> None:
@@ -217,10 +268,13 @@ def _log(rec: dict, label: str) -> None:
 
 # ---------------------------------------------------------------- driver
 
-def run_tuning(cfg: TuneConfig, factory=_default_factory, root: Path = TUNE_ROOT) -> dict:
+def run_tuning(cfg: TuneConfig, factory=_default_factory, root: Path = TUNE_ROOT,
+               worker_stage: int | None = None, retry_failed: bool = True) -> dict | None:
     out = root / f"{cfg.name}__{cfg.hash()}"
     out.mkdir(parents=True, exist_ok=True)
-    (out / "config.yaml").write_text(yaml.safe_dump(asdict(cfg), sort_keys=False))
+    cfg_text = yaml.safe_dump(asdict(cfg), sort_keys=False)
+    if not (out / "config.yaml").exists() or (out / "config.yaml").read_text() != cfg_text:
+        _atomic_write_text(out / "config.yaml", cfg_text)
     if cfg.dataset == "simulation":
         data = SimulationDGP().sample(
             cfg.n_tune, np.random.default_rng(derive_seed(cfg.seed0, 0, 0, "tune_data")))
@@ -247,18 +301,20 @@ def run_tuning(cfg: TuneConfig, factory=_default_factory, root: Path = TUNE_ROOT
     print(f"{cfg.name}  hash={cfg.hash()}  n_tune={cfg.n_tune}  "
           f"stage 1: {len(configs)} fits, stage 2: {(cfg.n_top + 1) * cfg.n_seeds} fits",
           flush=True)
+    if worker_stage is not None:
+        _work(cfg, out, data, features, configs, kw, factory, worker_stage)
+        return None
 
     # Stage 1
     s1 = []
     for t, params in enumerate(configs):
         rec = _run_or_load(_fit_path(out, "stage1", t, 0), lambda: evaluate_fit(
-            cfg, data, features, cfg.generator, kw(params), 1, t, 0, factory))
+            cfg, data, features, cfg.generator, kw(params), 1, t, 0, factory), retry_failed)
         rec["params"] = params
         _log(rec, f"stage1 t{t:02d}{' (default)' if t == 0 else '          '}")
         s1.append(rec)
 
-    ranked = sorted(range(1, len(configs)), key=lambda t: (s1[t]["score"], t))
-    finalists = [0] + ranked[:cfg.n_top]
+    finalists = _finalists(cfg, [r["score"] for r in s1])
 
     # Stage 2
     s2 = {}
@@ -266,7 +322,8 @@ def run_tuning(cfg: TuneConfig, factory=_default_factory, root: Path = TUNE_ROOT
         recs = []
         for k in range(cfg.n_seeds):
             rec = _run_or_load(_fit_path(out, "stage2", t, k), lambda: evaluate_fit(
-                cfg, data, features, cfg.generator, kw(configs[t]), 2, t, k, factory))
+                cfg, data, features, cfg.generator, kw(configs[t]), 2, t, k, factory),
+                retry_failed)
             _log(rec, f"stage2 t{t:02d} seed {k}")
             recs.append(rec)
         s2[t] = recs
@@ -279,6 +336,38 @@ def run_tuning(cfg: TuneConfig, factory=_default_factory, root: Path = TUNE_ROOT
         ref.append(rec)
 
     return _summarise(cfg, out, configs, s1, s2, ref)
+
+
+def _finalists(cfg: TuneConfig, s1_scores: list[float]) -> list[int]:
+    ranked = sorted(range(1, len(s1_scores)), key=lambda t: (s1_scores[t], t))
+    return [0] + ranked[:cfg.n_top]
+
+
+def _work(cfg, out, data, features, configs, kw, factory, stage: int) -> None:
+    """Worker mode: compute this stage's unfinished, unclaimed fits, then return.
+    A fit that exists (finished or failed) is never redone here."""
+    if stage == 1:
+        todo = [(t, 0) for t in range(len(configs))]
+    elif stage == 2:
+        scores = []
+        for t in range(len(configs)):
+            p = _fit_path(out, "stage1", t, 0)
+            if not p.exists():
+                print(f"stage 1 incomplete (t{t:02d} missing): this stage-2 worker exits; "
+                      f"the final pass will fill the gap", flush=True)
+                return
+            scores.append(json.loads(p.read_text())["score"])
+        todo = [(t, k) for t in _finalists(cfg, scores) for k in range(cfg.n_seeds)]
+    else:
+        raise ValueError(f"worker stage must be 1 or 2, got {stage}")
+    for t, k in todo:
+        path = _fit_path(out, f"stage{stage}", t, k)
+        if path.exists() or not _claim(path):
+            continue
+        rec = evaluate_fit(cfg, data, features, cfg.generator, kw(configs[t]), stage, t, k,
+                           factory)
+        _write_json(rec, path)
+        _log(rec, f"stage{stage} t{t:02d} seed {k}")
 
 
 def _stats(recs: list[dict]) -> tuple[float, float]:
@@ -380,9 +469,16 @@ def main():
     ap.add_argument("--config", required=True)
     ap.add_argument("--smoke", action="store_true",
                     help="tiny sample, 2 epochs, 5 fits: checks the pipeline, not the tuning")
+    ap.add_argument("--worker", type=int, choices=[1, 2], default=None,
+                    help="run one stage as one of several parallel workers (slurm/tune.sbatch)")
+    ap.add_argument("--no-retry-failed", action="store_true",
+                    help="keep failed fits as failed instead of refitting them")
     args = ap.parse_args()
     cfg = TuneConfig.from_yaml(args.config)
-    run_tuning(cfg.smoke() if args.smoke else cfg)
+    s = run_tuning(cfg.smoke() if args.smoke else cfg, worker_stage=args.worker,
+                   retry_failed=not args.no_retry_failed)
+    if args.smoke and s is not None and s["failed_fits"]:
+        raise SystemExit(f"smoke run: {s['failed_fits']} fit(s) failed")
 
 
 if __name__ == "__main__":
