@@ -1,0 +1,40 @@
+{
+ "generator": "tvae",
+ "kwargs": {
+  "enable_gpu": false,
+  "discrete_columns": [
+   "sex",
+   "nativity",
+   "educ",
+   "marital",
+   "class_worker"
+  ],
+  "params": {
+   "batch_size": 500,
+   "compress_dims": [
+    128,
+    128,
+    128
+   ],
+   "decompress_dims": [
+    128,
+    128
+   ],
+   "embedding_dim": 256,
+   "epochs": 600,
+   "l2scale": 4.81e-05,
+   "loss_factor": 0.555
+  }
+ },
+ "trial": 22,
+ "seed_idx": 0,
+ "fit_s": 1328.442568323575,
+ "gen_score_s": 4.068350517190993,
+ "ratios": [
+  471.1756772396223,
+  469.03669285536904,
+  471.3003453295155
+ ],
+ "score": 470.50423847483563,
+ "error": null
+}

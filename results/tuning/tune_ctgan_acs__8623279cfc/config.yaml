@@ -1,0 +1,73 @@
+name: tune_ctgan_acs
+generator: ctgan
+space:
+  epochs:
+    choice:
+    - 300
+    - 600
+    - 900
+  batch_size:
+    choice:
+    - 250
+    - 500
+    - 1000
+  pac:
+    choice:
+    - 1
+    - 5
+    - 10
+  generator_lr:
+    loguniform:
+    - 5.0e-05
+    - 0.001
+  discriminator_lr:
+    loguniform:
+    - 5.0e-05
+    - 0.001
+  discriminator_steps:
+    choice:
+    - 1
+    - 2
+    - 5
+  embedding_dim:
+    choice:
+    - 64
+    - 128
+    - 256
+  generator_dim:
+    layers:
+      width:
+      - 128
+      - 256
+      - 512
+      depth:
+      - 2
+      - 3
+  discriminator_dim:
+    layers:
+      width:
+      - 128
+      - 256
+      - 512
+      depth:
+      - 2
+      - 3
+generator_kwargs:
+  enable_gpu: true
+  deterministic: true
+  fix_condvec: true
+  discrete_columns:
+  - sex
+  - nativity
+  - educ
+  - marital
+  - class_worker
+dataset: acs
+formula: log_wage ~ a * female + a2 + e_lt_hs + e_some_college + e_bachelor + e_graduate
+n_tune: 5000
+n_random: 29
+n_files: 3
+n_top: 3
+n_seeds: 3
+seed0: 20260923
+force_params: {}

@@ -1,0 +1,128 @@
+{
+ "name": "tune_tvae_acs",
+ "hash": "f5d851b812",
+ "generator": "tvae",
+ "selection_rule": "one-standard-error, cheapest within 1 SE of the best mean",
+ "best_by_mean_trial": 19,
+ "best_by_mean_score": 23.374253897680376,
+ "best_by_mean_se": 5.0909252294600895,
+ "best_by_mean_fit_s": 1073.1592192063108,
+ "winner_trial": 19,
+ "winner_is_default": false,
+ "winner_fit_s": 1073.1592192063108,
+ "winner_params": {
+  "batch_size": 250,
+  "compress_dims": [
+   256,
+   256,
+   256
+  ],
+  "decompress_dims": [
+   128,
+   128
+  ],
+  "embedding_dim": 32,
+  "epochs": 900,
+  "l2scale": 1.55e-05,
+  "loss_factor": 1.13
+ },
+ "winner_score": 23.374253897680376,
+ "winner_se": 5.0909252294600895,
+ "default_score": 49.078588261200444,
+ "default_se": 1.5962535336235277,
+ "margin_over_default": 25.70433436352007,
+ "margin_se": 5.335311147024029,
+ "margin_beyond_2se": true,
+ "reference_plugin_oracle": NaN,
+ "reference_se": NaN,
+ "edges": [
+  "batch_size=250 (min)",
+  "compress_dims=[256, 256, 256] (largest)",
+  "embedding_dim=32 (min)",
+  "epochs=900 (max)"
+ ],
+ "failed_fits": 0,
+ "stage2_table": [
+  {
+   "trial": 19,
+   "default": false,
+   "stage1": 21.3409339235662,
+   "stage2_mean": 23.374253897680376,
+   "stage2_se": 5.0909252294600895,
+   "fit_s": 1073.1592192063108,
+   "params": {
+    "batch_size": 250,
+    "compress_dims": [
+     256,
+     256,
+     256
+    ],
+    "decompress_dims": [
+     128,
+     128
+    ],
+    "embedding_dim": 32,
+    "epochs": 900,
+    "l2scale": 1.55e-05,
+    "loss_factor": 1.13
+   }
+  },
+  {
+   "trial": 15,
+   "default": false,
+   "stage1": 24.280975105564462,
+   "stage2_mean": 36.040112548802746,
+   "stage2_se": 6.747663459573496,
+   "fit_s": 555.0536753945053,
+   "params": {
+    "batch_size": 500,
+    "compress_dims": [
+     256,
+     256
+    ],
+    "decompress_dims": [
+     256,
+     256,
+     256
+    ],
+    "embedding_dim": 32,
+    "epochs": 600,
+    "l2scale": 0.000742,
+    "loss_factor": 5.17
+   }
+  },
+  {
+   "trial": 27,
+   "default": false,
+   "stage1": 23.342394963912422,
+   "stage2_mean": 48.861304111389074,
+   "stage2_se": 9.82949210184591,
+   "fit_s": 690.8583910902962,
+   "params": {
+    "batch_size": 500,
+    "compress_dims": [
+     256,
+     256
+    ],
+    "decompress_dims": [
+     256,
+     256,
+     256
+    ],
+    "embedding_dim": 64,
+    "epochs": 600,
+    "l2scale": 0.000228,
+    "loss_factor": 2.95
+   }
+  },
+  {
+   "trial": 0,
+   "default": true,
+   "stage1": 53.58764826634422,
+   "stage2_mean": 49.078588261200444,
+   "stage2_se": 1.5962535336235277,
+   "fit_s": 96.95660578645766,
+   "params": {}
+  }
+ ]
+}

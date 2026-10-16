@@ -1,0 +1,154 @@
+job 5854115 tune_ctgan_acs 2026-10-16T04:44:26+02:00  node mcml-hgx-h100-019 cpu: AMD EPYC 9254 24-Core Processor  code 449c2ef
+gpu: NVIDIA H100, 580.173.02
+config configs/tune_ctgan_acs.yaml  workers 4  threads per worker 2
+
+== smoke run
+tune_ctgan_acs_smoke  hash=8ac945108d  n_tune=500  stage 1: 3 fits, stage 2: 4 fits
+/dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+  stage1 t00 (default)  score    12.37   fit   41.3s
+  stage1 t01            score    15.81   fit    0.7s
+  stage1 t02            score    24.43   fit    0.5s
+  stage2 t00 seed 0  score    16.10   fit    0.4s
+  stage2 t00 seed 1  score    11.30   fit    0.4s
+  stage2 t01 seed 0  score    12.55   fit    0.7s
+  stage2 t01 seed 1  score    16.00   fit    0.7s
+
+=== tune_ctgan_acs_smoke: stage 2 (mean pMSE ratio over seeds, lower is better)
+  default     13.70 ± 2.40   (stage 1: 12.37, fit 0s)  {'epochs': 2}
+  t01         14.27 ± 1.72   (stage 1: 15.81, fit 1s)  {'batch_size': 250, 'discriminator_dim': [128, 128, 128], 'discriminator_lr': 0.000171, 'discriminator_steps': 5, 'embedding_dim': 128, 'epochs': 2, 'generator_dim': [256, 256], 'generator_lr': 9.76e-05, 'pac': 10}
+  reference: none (no correctly specified oracle on real data)
+
+Best by mean: default (13.70 ± 2.40, fit 0s).  Selected by the 1-SE rule: default (fit 0s).
+Winner: the DEFAULT configuration.
+
+Frozen settings: results/tuning/tune_ctgan_acs_smoke__8ac945108d/winner.yaml
+
+== stage 1: 4 workers  2026-10-16T04:45:27+02:00
+[s1 w4] tune_ctgan_acs  hash=8623279cfc  n_tune=5000  stage 1: 30 fits, stage 2: 12 fits
+[s1 w2] tune_ctgan_acs  hash=8623279cfc  n_tune=5000  stage 1: 30 fits, stage 2: 12 fits
+[s1 w1] tune_ctgan_acs  hash=8623279cfc  n_tune=5000  stage 1: 30 fits, stage 2: 12 fits
+[s1 w3] tune_ctgan_acs  hash=8623279cfc  n_tune=5000  stage 1: 30 fits, stage 2: 12 fits
+[s1 w4] /dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+[s1 w4]   return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[s1 w3] /dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+[s1 w3]   return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[s1 w1] /dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+[s1 w1]   return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[s1 w2] /dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+[s1 w2]   return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[s1 w4]   stage1 t00 seed 0  score    50.73   fit  111.9s
+[s1 w4]   stage1 t04 seed 0  score    12.20   fit  681.9s
+[s1 w3]   stage1 t02 seed 0  score    26.42   fit  979.5s
+[s1 w3]   stage1 t06 seed 0  score   247.30   fit  198.6s
+[s1 w1]   stage1 t03 seed 0  score    28.19   fit 1448.5s
+[s1 w4]   stage1 t05 seed 0  score    11.56   fit  735.0s
+[s1 w1]   stage1 t08 seed 0  score    55.33   fit  100.7s
+[s1 w3]   stage1 t07 seed 0  score    38.94   fit  639.5s
+[s1 w1]   stage1 t10 seed 0  score    38.91   fit  430.0s
+[s1 w2]   stage1 t01 seed 0  score    10.72   fit 2113.3s
+[s1 w4]   stage1 t09 seed 0  score    23.68   fit  619.3s
+[s1 w1]   stage1 t12 seed 0  score    36.54   fit  353.8s
+[s1 w2]   stage1 t13 seed 0  score    71.98   fit  336.7s
+[s1 w2]   stage1 t16 seed 0  score    35.01   fit   97.1s
+[s1 w4]   stage1 t14 seed 0  score    24.77   fit  530.9s
+[s1 w2]   stage1 t17 seed 0  score    17.52   fit  177.5s
+[s1 w1]   stage1 t15 seed 0  score    41.72   fit  579.2s
+[s1 w4]   stage1 t18 seed 0  score   173.61   fit  300.8s
+[s1 w3]   stage1 t11 seed 0  score     5.99   fit 1180.0s
+[s1 w2]   stage1 t19 seed 0  score    62.23   fit  332.2s
+[s1 w1]   stage1 t20 seed 0  score   123.57   fit  210.8s
+[s1 w1]   stage1 t24 seed 0  score   110.64   fit   98.6s
+[s1 w3]   stage1 t22 seed 0  score     8.92   fit  318.1s
+[s1 w1]   stage1 t25 seed 0  score   306.65   fit  123.3s
+[s1 w3]   stage1 t26 seed 0  score   131.32   fit   60.6s
+[s1 w2]   stage1 t23 seed 0  score    23.17   fit  342.6s
+[s1 w3]   stage1 t28 seed 0  score    90.82   fit  338.8s
+[s1 w1]   stage1 t27 seed 0  score    24.34   fit  398.3s
+[s1 w2]   stage1 t29 seed 0  score    89.83   fit  384.1s
+[s1 w4]   stage1 t21 seed 0  score    23.59   fit 1018.7s
+== stage 2: 4 workers  2026-10-16T05:52:19+02:00
+[s2 w4] tune_ctgan_acs  hash=8623279cfc  n_tune=5000  stage 1: 30 fits, stage 2: 12 fits
+[s2 w2] tune_ctgan_acs  hash=8623279cfc  n_tune=5000  stage 1: 30 fits, stage 2: 12 fits
+[s2 w3] tune_ctgan_acs  hash=8623279cfc  n_tune=5000  stage 1: 30 fits, stage 2: 12 fits
+[s2 w1] tune_ctgan_acs  hash=8623279cfc  n_tune=5000  stage 1: 30 fits, stage 2: 12 fits
+[s2 w2] /dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+[s2 w2]   return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[s2 w4] /dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+[s2 w4]   return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[s2 w3] /dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+[s2 w3]   return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[s2 w1] /dss/dsshome1/03/ra95xov2/mf/envs/synth2/lib/python3.10/site-packages/torch/autograd/graph.py:1072: UserWarning: Attempting to run cuBLAS, but there was no current CUDA context! Attempting to set the primary context... (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/cuda/CublasHandlePool.cpp:410.)
+[s2 w1]   return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+[s2 w3]   stage2 t00 seed 2  score    46.79   fit  112.0s
+[s2 w2]   stage2 t00 seed 1  score    41.10   fit  112.3s
+[s2 w4]   stage2 t00 seed 0  score    47.88   fit  113.1s
+[s2 w4]   stage2 t22 seed 0  score     9.12   fit  324.2s
+[s2 w4]   stage2 t22 seed 1  score     7.90   fit  327.6s
+[s2 w4]   stage2 t22 seed 2  score     6.13   fit  327.0s
+[s2 w1]   stage2 t11 seed 0  score     6.84   fit 1189.4s
+[s2 w2]   stage2 t11 seed 2  score     7.10   fit 1190.2s
+[s2 w3]   stage2 t11 seed 1  score     6.08   fit 1192.2s
+[s2 w4]   stage2 t01 seed 0  score    10.53   fit 1835.7s
+[s2 w1]   stage2 t01 seed 1  score     8.60   fit 1875.8s
+[s2 w2]   stage2 t01 seed 2  score     7.16   fit 1861.3s
+
+== final pass  2026-10-16T06:45:12+02:00
+tune_ctgan_acs  hash=8623279cfc  n_tune=5000  stage 1: 30 fits, stage 2: 12 fits
+  stage1 t00 (default)  score    50.73   fit  111.9s
+  stage1 t01            score    10.72   fit 2113.3s
+  stage1 t02            score    26.42   fit  979.5s
+  stage1 t03            score    28.19   fit 1448.5s
+  stage1 t04            score    12.20   fit  681.9s
+  stage1 t05            score    11.56   fit  735.0s
+  stage1 t06            score   247.30   fit  198.6s
+  stage1 t07            score    38.94   fit  639.5s
+  stage1 t08            score    55.33   fit  100.7s
+  stage1 t09            score    23.68   fit  619.3s
+  stage1 t10            score    38.91   fit  430.0s
+  stage1 t11            score     5.99   fit 1180.0s
+  stage1 t12            score    36.54   fit  353.8s
+  stage1 t13            score    71.98   fit  336.7s
+  stage1 t14            score    24.77   fit  530.9s
+  stage1 t15            score    41.72   fit  579.2s
+  stage1 t16            score    35.01   fit   97.1s
+  stage1 t17            score    17.52   fit  177.5s
+  stage1 t18            score   173.61   fit  300.8s
+  stage1 t19            score    62.23   fit  332.2s
+  stage1 t20            score   123.57   fit  210.8s
+  stage1 t21            score    23.59   fit 1018.7s
+  stage1 t22            score     8.92   fit  318.1s
+  stage1 t23            score    23.17   fit  342.6s
+  stage1 t24            score   110.64   fit   98.6s
+  stage1 t25            score   306.65   fit  123.3s
+  stage1 t26            score   131.32   fit   60.6s
+  stage1 t27            score    24.34   fit  398.3s
+  stage1 t28            score    90.82   fit  338.8s
+  stage1 t29            score    89.83   fit  384.1s
+  stage2 t00 seed 0  score    47.88   fit  113.1s
+  stage2 t00 seed 1  score    41.10   fit  112.3s
+  stage2 t00 seed 2  score    46.79   fit  112.0s
+  stage2 t11 seed 0  score     6.84   fit 1189.4s
+  stage2 t11 seed 1  score     6.08   fit 1192.2s
+  stage2 t11 seed 2  score     7.10   fit 1190.2s
+  stage2 t22 seed 0  score     9.12   fit  324.2s
+  stage2 t22 seed 1  score     7.90   fit  327.6s
+  stage2 t22 seed 2  score     6.13   fit  327.0s
+  stage2 t01 seed 0  score    10.53   fit 1835.7s
+  stage2 t01 seed 1  score     8.60   fit 1875.8s
+  stage2 t01 seed 2  score     7.16   fit 1861.3s
+
+=== tune_ctgan_acs: stage 2 (mean pMSE ratio over seeds, lower is better)
+  t11          6.67 ± 0.30   (stage 1: 5.99, fit 1190s)  {'batch_size': 500, 'discriminator_dim': [512, 512, 512], 'discriminator_lr': 0.000262, 'discriminator_steps': 5, 'embedding_dim': 128, 'epochs': 900, 'generator_dim': [256, 256, 256], 'generator_lr': 5.66e-05, 'pac': 5}
+  t22          7.72 ± 0.87   (stage 1: 8.92, fit 327s)  {'batch_size': 250, 'discriminator_dim': [512, 512, 512], 'discriminator_lr': 0.00091, 'discriminator_steps': 2, 'embedding_dim': 128, 'epochs': 300, 'generator_dim': [256, 256], 'generator_lr': 6.29e-05, 'pac': 1}
+  t01          8.76 ± 0.98   (stage 1: 10.72, fit 1861s)  {'batch_size': 250, 'discriminator_dim': [128, 128, 128], 'discriminator_lr': 0.000171, 'discriminator_steps': 5, 'embedding_dim': 128, 'epochs': 900, 'generator_dim': [256, 256], 'generator_lr': 9.76e-05, 'pac': 10}
+  default     45.26 ± 2.10   (stage 1: 50.73, fit 112s)  {}
+  reference: none (no correctly specified oracle on real data)
+
+Best by mean: t11 (6.67 ± 0.30, fit 1190s).  Selected by the 1-SE rule: t11 (fit 1190s).
+Winner: t11, 38.59 ± 2.12 below the default, beyond seed noise.
+  On a search-space edge: discriminator_dim=[512, 512, 512] (largest); discriminator_steps=5 (max); epochs=900 (max); generator_lr=5.66e-05 (low end)
+
+Frozen settings: results/tuning/tune_ctgan_acs__8623279cfc/winner.yaml
+
+finished 2026-10-16T06:45:16+02:00, exit 0

@@ -1,0 +1,25 @@
+{
+ "generator": "tvae",
+ "kwargs": {
+  "enable_gpu": false,
+  "discrete_columns": [
+   "sex",
+   "nativity",
+   "educ",
+   "marital",
+   "class_worker"
+  ],
+  "params": {}
+ },
+ "trial": 0,
+ "seed_idx": 0,
+ "fit_s": 125.7777805076912,
+ "gen_score_s": 9.517941553145647,
+ "ratios": [
+  54.796893882413904,
+  51.92438047593639,
+  54.04167044068238
+ ],
+ "score": 53.58764826634422,
+ "error": null
+}

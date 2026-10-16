@@ -1,0 +1,27 @@
+{
+ "generator": "ctgan",
+ "kwargs": {
+  "enable_gpu": true,
+  "deterministic": true,
+  "fix_condvec": true,
+  "discrete_columns": [
+   "sex",
+   "nativity",
+   "educ",
+   "marital",
+   "class_worker"
+  ],
+  "params": {}
+ },
+ "trial": 0,
+ "seed_idx": 1,
+ "fit_s": 112.33599058445543,
+ "gen_score_s": 1.5179043989628553,
+ "ratios": [
+  42.67069902084763,
+  39.920050179228525,
+  40.722309587608386
+ ],
+ "score": 41.10435292922818,
+ "error": null
+}

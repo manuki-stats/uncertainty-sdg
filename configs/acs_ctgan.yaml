@@ -1,0 +1,30 @@
+# ACS 2024 pseudo-population (src/data/acs.py): each replication draws its own D_org of
+# 5000 without replacement from N = 717,219 (f = 0.70%); truth = the population's M2
+# coefficients. q_org target from the same runs: summarise --target sample.
+# CTGAN with the ACS tuning winner, frozen from results/tuning/tune_ctgan_acs__8623279cfc/winner.yaml (t11: 6.67 +- 0.30 vs default 45.3 +- 2.1).
+name: acs_ctgan
+generator: ctgan
+generator_kwargs:
+  enable_gpu: true
+  deterministic: true
+  fix_condvec: true
+  discrete_columns: [sex, nativity, educ, marital, class_worker]
+  params:
+    batch_size: 500
+    discriminator_dim: [512, 512, 512]
+    discriminator_lr: 0.000262
+    discriminator_steps: 5
+    embedding_dim: 128
+    epochs: 900
+    generator_dim: [256, 256, 256]
+    generator_lr: 5.66e-05
+    pac: 5
+dataset: acs
+target: population
+n_org: 5000
+r: 2
+m: 10
+K: 10
+steps: [1, 2, 3, 4]
+estimators: [T_alt, T_s, T_s_ppd]
+alpha: 0.05

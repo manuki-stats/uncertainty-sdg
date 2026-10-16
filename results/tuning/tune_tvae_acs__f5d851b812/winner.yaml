@@ -1,0 +1,22 @@
+generator: tvae
+generator_kwargs:
+  enable_gpu: false
+  discrete_columns:
+  - sex
+  - nativity
+  - educ
+  - marital
+  - class_worker
+  params:
+    batch_size: 250
+    compress_dims:
+    - 256
+    - 256
+    - 256
+    decompress_dims:
+    - 128
+    - 128
+    embedding_dim: 32
+    epochs: 900
+    l2scale: 1.55e-05
+    loss_factor: 1.13

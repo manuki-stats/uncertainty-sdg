@@ -1,0 +1,45 @@
+{
+ "generator": "ctgan",
+ "kwargs": {
+  "enable_gpu": true,
+  "deterministic": true,
+  "fix_condvec": true,
+  "discrete_columns": [
+   "sex",
+   "nativity",
+   "educ",
+   "marital",
+   "class_worker"
+  ],
+  "params": {
+   "batch_size": 250,
+   "discriminator_dim": [
+    128,
+    128,
+    128
+   ],
+   "discriminator_lr": 0.000159,
+   "discriminator_steps": 5,
+   "embedding_dim": 64,
+   "epochs": 600,
+   "generator_dim": [
+    128,
+    128,
+    128
+   ],
+   "generator_lr": 0.000371,
+   "pac": 5
+  }
+ },
+ "trial": 3,
+ "seed_idx": 0,
+ "fit_s": 1448.4706591470167,
+ "gen_score_s": 1.915332717821002,
+ "ratios": [
+  27.319624017285935,
+  28.48867195579423,
+  28.767051663892936
+ ],
+ "score": 28.191782545657702,
+ "error": null
+}
