@@ -64,4 +64,17 @@ Reported regardless: run times, TabPFN redraw counts, fit failures, and the esca
 
 ## 5. Deviations after commit
 
-(none)
+### D1 — 19 Oct 2026: pass-2 rule extended to TVAE and TabPFN
+
+Decided before any real-data coverage was read; until now only run times, logs, failures and
+TabPFN redraw counts have been inspected. Pass 2 follows the simulation's rule for every cell
+except CTGAN: a cell is escalated from R = 100 to R = 1000 (reps 100:1000, same chunk sizes) if
+any Step 2–4 T_alt Wilson upper bound of coverage against the population target is ≥ 0.93. This
+replaces the earlier plan of escalating synthpop only. CTGAN stays at R = 100, as in the
+simulation. Reason: the expected cost (about one week of wall time; roughly 9,000 core-hours for
+TVAE and 370 GPU-hours for TabPFN) is acceptable.
+
+Also recorded: on 19 Oct Drechsler confirmed by email the design that redraws the training sample
+in every replication (5,000 records at a 0.70% sampling fraction meet his criteria; the
+design-based check gives complete-data coverage of 95.0–95.5%). With this decision, the
+blinding condition is met. Unblinding follows once pass 1 is complete.
