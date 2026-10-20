@@ -78,3 +78,9 @@ Also recorded: on 19 Oct Drechsler confirmed by email the design that redraws th
 in every replication (5,000 records at a 0.70% sampling fraction meet his criteria; the
 design-based check gives complete-data coverage of 95.0–95.5%). With this decision, the
 blinding condition is met. Unblinding follows once pass 1 is complete.
+
+### N1 — 20 Oct 2026: note on S9 (no prediction changed)
+
+Written after unblinding pass 1. S9 required a Step-3 κ̂ above 10 on every estimand, but the
+simulation it extrapolates from had a Step-3 κ̂ of 5.6 on E3 (E2: 16.5; E1: 231), so the bet was
+inconsistent with its own source when written. It is scored as written.
