@@ -1,0 +1,24 @@
+# Sensitivity analysis (exploratory, not pre-registered): TabPFN with age and hours dequantised
+# (U(-0.5,0.5) noise in the context, generated values rounded). Steps 1-2 only.
+# ACS 2024 pseudo-population (src/data/acs.py): each replication draws its own D_org of
+# 5000 without replacement from N = 717,219 (f = 0.70%); truth = the population's M2
+# coefficients. The q_org target comes from the same runs:
+#   python -m src.evaluation.summarise --config <this file> --target sample
+# TabPFN at package defaults, on an H100, as configs/tabpfn.yaml. Visit order as synthpop's.
+name: acs_tabpfn_dequant
+generator: tabpfn
+generator_kwargs:
+  temperature: 1.0
+  n_permutations: 3
+  order: [sex, age, nativity, educ, marital, class_worker, hours, log_wage]
+  discrete_columns: [sex, nativity, educ, marital, class_worker]
+  dequantize: [age, hours]
+dataset: acs
+target: population
+n_org: 5000
+r: 2
+m: 10
+K: 10
+steps: [1, 2]
+estimators: [T_alt, T_s, T_s_ppd]
+alpha: 0.05

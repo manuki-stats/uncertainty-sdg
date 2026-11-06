@@ -93,11 +93,13 @@ class TabPFNGenerator(Generator):
     def __init__(self, temperature: float = 1.0, n_permutations: int = 3,
                  device: str = "auto", order=ORDER, discrete_columns=DISCRETE,
                  ignore_pretraining_limits: bool = True, params: dict | None = None,
-                 warmup: bool = True):
+                 warmup: bool = True, dequantize=()):
         self.temperature = float(temperature)
         self.n_permutations = int(n_permutations)
         self.device = device
         self.order = list(order)
+        self.dequantize = list(dequantize)       # columns to dequantise (see fit)
+        self._bounds: dict = {}
         self.discrete_columns = list(discrete_columns)
         self.ignore_pretraining_limits = ignore_pretraining_limits
         self.params = dict(params or {})          # extra TabPFN estimator kwargs
@@ -130,7 +132,17 @@ class TabPFNGenerator(Generator):
                                               tabpfn_reg=TabPFNRegressor(**kw))
         declared = [self.order.index(c) for c in self.discrete_columns]
         self._model.set_categorical_features(declared)
-        self._model.fit(data[self.order].to_numpy(dtype=np.float32))
+        fit_data = data[self.order].astype(float)
+        if self.dequantize:
+            # Dequantisation: integer-valued columns get U(-0.5, 0.5) noise so the in-context
+            # data are as continuous as the values TabPFN generates; generate() rounds them
+            # back after the whole file is drawn. Noise stream derived from the training seed.
+            rng = np.random.default_rng(np.random.SeedSequence(entropy=int(train_seed),
+                                                               spawn_key=(7,)))
+            for c in self.dequantize:
+                self._bounds[c] = (float(data[c].min()), float(data[c].max()))
+                fit_data[c] = fit_data[c] + rng.uniform(-0.5, 0.5, size=len(fit_data))
+        self._model.fit(fit_data.to_numpy(dtype=np.float32))
         # getattr: test doubles of the model (tests/test_tabpfn_wrapper.py) have no list
         inferred = getattr(self._model, "categorical_features", declared)
         added = sorted(set(inferred) - set(declared))
@@ -204,6 +216,9 @@ class TabPFNGenerator(Generator):
             new_bad = ~np.isfinite(extra.to_numpy()).all(axis=1)
             self.last_n_rejected += int(new_bad.sum())
             bad = ~np.isfinite(df.to_numpy()).all(axis=1)
+        for c in self.dequantize:
+            lo, hi = self._bounds[c]
+            df[c] = np.clip(np.round(df[c]), lo, hi)
         return df
 
 
