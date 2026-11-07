@@ -48,7 +48,7 @@ def main() -> None:
     versions = {}
     for c0, c1 in done:
         path = chunk_path(cfg.name, h, c0, c1)
-        for v in pd.read_csv(path, usecols=["code_version"])["code_version"].unique():
+        for v in pd.read_csv(path, usecols=["code_version"], dtype={"code_version": str})["code_version"].unique():
             versions[v] = versions.get(v, 0) + 1
     if versions:
         print("  code versions (chunks): " + ", ".join(f"{v} ({n})" for v, n in versions.items()))

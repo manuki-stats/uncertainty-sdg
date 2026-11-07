@@ -12,6 +12,7 @@
 #   --threads T      threads per process; the job asks W*T CPUs      [2]
 #   --time T         walltime per task, at most 2-00:00:00       [12:00:00]
 #   --mem-per-cpu M                                                   [4G]
+#   --exclude NODES  nodes to avoid, comma-separated (SBATCH_EXCLUDE is ignored)
 #   --dry-run        print the sbatch command, submit nothing
 #
 # Limits here: 10 running and 50 queued jobs per QOS, and every array task
@@ -30,6 +31,7 @@ while [ $# -gt 0 ]; do
     --threads) THREADS=$2; shift 2 ;;
     --time) TIME=$2; shift 2 ;;
     --mem-per-cpu) MEM=$2; shift 2 ;;
+    --exclude) EXCLUDE=$2; shift 2 ;;
     --dry-run) DRY=1; shift ;;
     *) echo "unknown option $1"; usage ;;
   esac
@@ -53,7 +55,7 @@ NAME=$(basename "$CONFIG" .yaml)
 mkdir -p results/logs
 
 CMD=(sbatch --parsable -J "$NAME" "${RES[@]}" --array=0-$((NTASK - 1))
-     --cpus-per-task=$((WORKERS * THREADS)) --mem-per-cpu="$MEM" --time="$TIME"
+     --cpus-per-task=$((WORKERS * THREADS)) --mem-per-cpu="$MEM" --time="$TIME" ${EXCLUDE:+--exclude="$EXCLUDE"}
      --export=ALL,CONFIG="$CONFIG",R0="$R0",R1="$R1",CHUNK="$CHUNK",WORKERS="$WORKERS",THREADS="$THREADS"
      slurm/run_array.sbatch)
 echo "$NAME: reps $R0:$R1 -> $NCHUNK chunks of $CHUNK, $NTASK tasks x $WORKERS workers x $THREADS threads ($PROFILE)"
