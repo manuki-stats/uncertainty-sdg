@@ -1,0 +1,17 @@
+# synth2 environment, recorded 2026-11-07 on login-02
+Python 3.10.21
+torch 2.14.0+cu130 cuda 13.0
+ctgan                  0.12.1
+joblib                 1.6.0
+numpy                  2.2.6
+pandas                 2.3.3
+rdt                    1.22.0
+rpy2                   3.6.7
+scikit-learn           1.7.2
+scipy                  1.15.3
+statsmodels            0.15.0
+tabpfn                 9.0.0
+tabpfn-extensions      0.6.2
+R version 4.5.1 (2025-06-13) 
+synthpop 1.9.3 
+rpart 4.1.27 
