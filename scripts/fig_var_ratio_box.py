@@ -6,10 +6,14 @@ the pooled estimate across replications of the same cell, step, estimand and
 estimator, exactly as src/evaluation/summarise.py does; the white diamond is
 the mean of the per-run ratios, i.e. the var_ratio column of the committed
 summaries (the variance ratio reported in the tables). Step 1 uses the naive
-interval, Steps 2-4 use T_alt. Reads the raw chunks in results/raw, which are
-git-ignored, so run it where the raw results live:
+interval, Steps 2-4 use T_alt.
 
-    python scripts/fig_var_ratio_box.py --raw results/raw --out figures/
+The per-run ratios come from the raw chunks (results/raw, git-ignored). Run once
+where the raw results live, with --save, to store them as a small committed
+table; afterwards the figure rebuilds from that table alone:
+
+    python scripts/fig_var_ratio_box.py --raw results/raw --save --out figures/
+    python scripts/fig_var_ratio_box.py --out figures/            # from the table
 
 Check: the script prints max |mean ratio - var_ratio| against the summaries
 when --summary is given; it should be ~1e-12.
@@ -61,14 +65,26 @@ def per_run_ratios(df: pd.DataFrame) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--raw", default="results/raw")
+    ap.add_argument("--raw", default=None, help="raw chunks; omit to read the saved table")
+    ap.add_argument("--runs", default="results/summary/sim_var_ratio_runs.csv",
+                    help="table of per-run ratios (written with --save, read without --raw)")
+    ap.add_argument("--save", action="store_true", help="write the per-run table from --raw")
     ap.add_argument("--summary", default=None, help="optional: check means against summaries")
     ap.add_argument("--out", default="figures")
     a = ap.parse_args()
-    raw, out = Path(a.raw), Path(a.out)
+    out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    data = {cell: per_run_ratios(read_cell(raw, cell)) for _, cell in CELLS}
+    if a.raw:
+        data = {cell: per_run_ratios(read_cell(Path(a.raw), cell)) for _, cell in CELLS}
+        if a.save:
+            tab = pd.concat([d.assign(cell=c) for c, d in data.items()], ignore_index=True)
+            tab[["cell", "step", "estimand", "ratio"]].to_csv(a.runs, index=False,
+                                                              float_format="%.6g")
+            print(f"wrote {a.runs} ({len(tab)} rows)")
+    else:
+        tab = pd.read_csv(a.runs)
+        data = {cell: tab[tab.cell == cell].drop(columns="cell") for _, cell in CELLS}
 
     if a.summary:
         worst = 0.0

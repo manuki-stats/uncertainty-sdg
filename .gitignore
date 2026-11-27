@@ -25,4 +25,7 @@ Thumbs.db
 results/raw/
 results/summary/
 
-acs_raw/
+acs_raw/figures/
+*.zip
+figures/
+*.zip
